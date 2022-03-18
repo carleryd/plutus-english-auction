@@ -1,0 +1,5 @@
+{
+    "type": "StakeSigningKeyShelley_ed25519",
+    "description": "Stake Signing Key",
+    "cborHex": "5820a487c5b3e9f841b3d2b8d240d426c84f6ce345c851f48b4d8c2d4b75c34247e6"
+}

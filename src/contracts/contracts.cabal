@@ -1,0 +1,143 @@
+Cabal-Version:      2.4
+Name:               contracts
+Version:            0.1.0.0
+Build-Type:          Simple
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             Christofer Ärleryd
+maintainer:         c.arleryd@gmail.com
+
+-- A copyright notice.
+-- copyright:
+-- category:
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     EnglishAuction
+                     , Deploy
+                     , Monitor
+                     , PAB
+                     , Token.OffChain
+                     , Token.OnChain
+                     , Utils
+                     , Plutus.Contract.Test.Coverage.ReportCoverage
+  build-depends:       aeson
+                     , base ^>=4.14.1.0
+                     , cardano-crypto-class
+                     , cardano-ledger-core
+                     , containers
+                     , data-default
+                     , playground-common
+                     , plutus-contract
+                     , plutus-use-cases
+                     , plutus-ledger
+                     , plutus-ledger-constraints
+                     , plutus-tx-plugin
+                     , plutus-tx
+                     , text
+                     , cardano-wallet-core
+                     , cardano-api
+                     , serialise
+                     , bytestring
+                     , openapi3
+                     , plutus-ledger-api
+                     , prettyprinter
+                     , plutus-pab
+                     , req ^>= 3.9.0
+                     , html-entities
+  default-language:    Haskell2010
+  ghc-options:         -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+
+executable token-pab
+  main-is: token-pab.hs
+  hs-source-dirs:      app
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       aeson
+                     , base ^>= 4.14.1.0
+                     , cardano-crypto-class
+                     , cardano-ledger-core
+                     , contracts
+                     , data-default
+                     , freer-extras
+                     , freer-simple
+                     , plutus-contract
+                     , plutus-ledger
+                     , plutus-ledger-constraints
+                     , plutus-pab
+                     , plutus-use-cases
+                     , text
+
+executable monitor
+  main-is: monitor.hs
+  hs-source-dirs:      app
+  ghc-options:         -Wall
+  build-depends:       aeson
+                     , base ^>= 4.14.1.0
+                     , plutus-contract
+                     , plutus-ledger-api
+                     , plutus-pab
+                     , contracts
+                     , req ^>= 3.9.0
+                     , text
+
+-- executable monitor
+--   main-is: monitor.hs
+--   hs-source-dirs:      app
+--   ghc-options:         -Wall
+--   build-depends:       aeson
+--                      , base ^>= 4.14.1.0
+--                      , contracts
+--                      , plutus-contract
+--                      , plutus-ledger-api
+--                      , plutus-pab
+--                      , req ^>= 3.9.0
+--                      , text
+
+executable mint-token
+  main-is: mint-token.hs
+  hs-source-dirs:      app
+  ghc-options:         -Wall
+  build-depends:       base ^>= 4.14.1.0
+                     , contracts
+                     , plutus-contract
+                     , plutus-pab
+                     , plutus-ledger
+                     , req ^>= 3.9.0
+
+test-suite contracts-tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test
+  other-modules:       Spec.Trace
+                     , Spec.Model
+  default-language: Haskell2010
+  ghc-options:         -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+  build-depends:       base ^>=4.14.1.0
+                     , containers
+                     , data-default
+                     , freer-extras
+                     , lens
+                     , plutus-contract
+                     , plutus-ledger
+                     , contracts
+                     , plutus-tx
+                     , QuickCheck
+                     , tasty
+                     , tasty-hunit
+                     , tasty-quickcheck
+                     , text
+                     , tasty
+                     , tasty-hunit
+                     , tasty-quickcheck
+  if !(impl(ghcjs) || os(ghcjs))
+    build-depends: plutus-tx-plugin -any
