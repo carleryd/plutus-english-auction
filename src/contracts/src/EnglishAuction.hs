@@ -76,6 +76,7 @@ import PlutusTx.Prelude
     Maybe (..),
     Ord ((<), (>=)),
     Semigroup ((<>)),
+    max,
     otherwise,
     trace,
     traceError,
@@ -152,9 +153,12 @@ instance Scripts.ValidatorTypes Auctioning where
 
 {-# INLINEABLE minBid #-}
 minBid :: AuctionDatum -> Integer
-minBid AuctionDatum {..} = case adHighestBid of
-  Nothing -> aMinBid adAuction
-  Just Bid {..} -> bBid + 1
+minBid AuctionDatum {adHighestBid, adAuction} =
+  max minLovelace x
+  where
+    x = case adHighestBid of
+      Nothing -> aMinBid adAuction
+      Just Bid {..} -> bBid + 1
 
 {-# INLINEABLE mkAuctionValidator #-}
 mkAuctionValidator :: AuctionDatum -> AuctionAction -> ScriptContext -> Bool

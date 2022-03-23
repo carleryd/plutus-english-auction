@@ -255,19 +255,21 @@ myBid32 = 200_000
 
 myPredicate3 :: TracePredicate
 myPredicate3 =
-  walletFundsChange
-    w1
-    ( negate (Ada.lovelaceValueOf myBid31)
-    -- <> minUtxoAda
-    -- <> assetClassValue tokenA 1
-    )
-    .&&. walletFundsChange
-      w2
-      ( -- Ada.lovelaceValueOf myBid3 <>
-        negate (assetClassValue tokenA 1)
-          <> negate minUtxoAda
-      )
-    .&&. walletFundsChange w3 (negate (Ada.lovelaceValueOf myBid32))
+  -- walletFundsChange
+  -- w1
+  -- ( negate (Ada.lovelaceValueOf myBid31)
+  -- -- <> minUtxoAda
+  -- -- <> assetClassValue tokenA 1
+  -- )
+  -- .&&. walletFundsChange
+  --   w2
+  --   ( -- Ada.lovelaceValueOf myBid3 <>
+  --     negate (assetClassValue tokenA 1)
+  --       <> negate minUtxoAda
+  --   )
+  walletFundsChange w1 (Ada.lovelaceValueOf 0)
+    .&&. walletFundsChange w2 (Ada.lovelaceValueOf 0)
+    .&&. walletFundsChange w3 (Ada.lovelaceValueOf 0)
   where
     minUtxoAda = Ada.lovelaceValueOf minLovelace
 

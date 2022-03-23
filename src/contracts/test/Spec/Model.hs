@@ -166,7 +166,7 @@ instance ContractModel AuctionModel where
                   (\(token, n) -> token == assetClass bpCurrency bpToken && n > 0)
                   (t ^. asToken)
               isAcceptableBid =
-                bpBid > highestBid && bpBid > minBid && correctToken
+                bpBid > highestBid && bpBid > minBid && bpBid > minLovelace && correctToken
 
           when isAcceptableBid $ do
             let bidValue = Ada.lovelaceValueOf bpBid
