@@ -6,6 +6,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -22,7 +23,7 @@ module EnglishAuction
     BidParams (..),
     CloseParams (..),
     Bid (..),
-    AuctionSchema,
+    AuctionUseSchema,
     AuctionStartSchema,
     start,
     bid,
@@ -49,6 +50,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Default (Default (def))
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map as Map (singleton, toList)
+import Data.Maybe
 import Data.Monoid (Last (..))
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
@@ -166,7 +168,7 @@ mkAuctionValidator ad redeemer ctx =
         && traceIfFalse "wrong refund" correctBidRefund
     -- && traceIfFalse "too late" correctBidSlotRange
     Close ->
-      -- traceIfFalse "too early" correctCloseSlotRange &&
+      -- traceIfFalse "too early" correctCloseSlotRange
       case adHighestBid ad of
         Nothing ->
           traceIfFalse
@@ -276,11 +278,11 @@ mkAuctionValidator ad redeemer ctx =
               [o] -> txOutValue o == Ada.lovelaceValueOf bBid
               _ -> traceError "expected exactly one refund output"
 
--- correctBidSlotRange :: Bool
--- correctBidSlotRange = to (aDeadline auction) `contains` txInfoValidRange info
+    correctBidSlotRange :: Bool
+    correctBidSlotRange = to (aDeadline auction) `contains` txInfoValidRange info
 
--- correctCloseSlotRange :: Bool
--- correctCloseSlotRange = True
+    correctCloseSlotRange :: Bool
+    correctCloseSlotRange = True
 
 typedAuctionValidator :: Scripts.TypedValidator Auctioning
 typedAuctionValidator =
@@ -308,18 +310,20 @@ data StartParams = StartParams
     spCurrency :: !CurrencySymbol,
     spToken :: !TokenName
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Haskell.Show, Haskell.Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data BidParams = BidParams
   { bpCurrency :: !CurrencySymbol,
     bpToken :: !TokenName,
-    bpBid :: !Integer
+    bpBid :: !Integer,
+    bpSeller :: !PaymentPubKeyHash
   }
   deriving (Haskell.Show, Haskell.Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data CloseParams = CloseParams
   { cpCurrency :: !CurrencySymbol,
-    cpToken :: !TokenName
+    cpToken :: !TokenName,
+    cpSeller :: !PaymentPubKeyHash
   }
   deriving (Haskell.Show, Haskell.Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -346,8 +350,8 @@ start StartParams {..} = do
   logInfo @Haskell.String $ printf "started auction %s for token %s" (Haskell.show a) (Haskell.show v)
 
 bid :: forall w s. BidParams -> Contract w s Text ()
-bid BidParams {..} = do
-  (oref, o, d@AuctionDatum {..}) <- findAuction bpCurrency bpToken
+bid BidParams {bpCurrency, bpToken, bpBid, bpSeller} = do
+  (oref, o, d@AuctionDatum {..}) <- findAuction bpCurrency bpToken bpSeller
   logInfo @Haskell.String $ printf "found auction utxo with datum %s" (Haskell.show d)
 
   when (bpBid < minBid d) $
@@ -365,12 +369,12 @@ bid BidParams {..} = do
       tx = case adHighestBid of
         Nothing ->
           Constraints.mustPayToTheScript d' v
-            <> Constraints.mustValidateIn (to $ aDeadline adAuction)
+            -- <> Constraints.mustValidateIn (to $ aDeadline adAuction)
             <> Constraints.mustSpendScriptOutput oref r
         Just Bid {..} ->
           Constraints.mustPayToTheScript d' v
             <> Constraints.mustPayToPubKey bBidder (Ada.lovelaceValueOf bBid)
-            <> Constraints.mustValidateIn (to $ aDeadline adAuction)
+            -- <> Constraints.mustValidateIn (to $ aDeadline adAuction)
             <> Constraints.mustSpendScriptOutput oref r
   ledgerTx <- submitTxConstraintsWith lookups tx
   void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
@@ -383,8 +387,8 @@ bid BidParams {..} = do
       (Haskell.show bpToken)
 
 close :: forall w s. CloseParams -> Contract w s Text ()
-close (CloseParams cpCurrency cpToken) = do
-  (oref, o, datum) <- findAuction cpCurrency cpToken
+close (CloseParams cpCurrency cpToken cpSeller) = do
+  (oref, o, datum) <- findAuction cpCurrency cpToken cpSeller
   logInfo @Haskell.String $ printf "found auction utxo with datum %s" (Haskell.show datum)
 
   let t = Value.singleton cpCurrency cpToken 1
@@ -399,12 +403,12 @@ close (CloseParams cpCurrency cpToken) = do
         case adHighestBid datum of
           Nothing ->
             Constraints.mustPayToPubKey seller (t <> Ada.lovelaceValueOf minLovelace)
-              <> Constraints.mustValidateIn (from $ aDeadline $ adAuction datum)
+              -- <> Constraints.mustValidateIn (from $ aDeadline $ adAuction datum)
               <> Constraints.mustSpendScriptOutput oref r
           Just (Bid bBidder bBid) ->
             Constraints.mustPayToPubKey bBidder (t <> Ada.lovelaceValueOf minLovelace)
               <> Constraints.mustPayToPubKey seller (Ada.lovelaceValueOf bBid)
-              <> Constraints.mustValidateIn (from $ aDeadline $ adAuction datum)
+              -- <> Constraints.mustValidateIn (from $ aDeadline $ adAuction datum)
               -- AFAIK this triggers the spending. Without this then the `mustPayToPubKey` doesn't happen
               <> Constraints.mustSpendScriptOutput oref r
 
@@ -420,13 +424,19 @@ close (CloseParams cpCurrency cpToken) = do
 findAuction ::
   CurrencySymbol ->
   TokenName ->
+  PaymentPubKeyHash ->
   Contract w s Text (TxOutRef, ChainIndexTxOut, AuctionDatum)
-findAuction cs tn = do
+findAuction cs tn seller = do
   utxos <- utxosAt $ scriptHashAddress auctionHash
   let xs =
         [ (oref, o)
           | (oref, o) <- Map.toList utxos,
-            Value.valueOf (_ciTxOutValue o) cs tn == 1
+            Value.valueOf (_ciTxOutValue o) cs tn == 1,
+            case _ciTxOutDatum o of
+              Left _ -> False
+              Right (Datum e) -> case PlutusTx.fromBuiltinData e of
+                Nothing -> False
+                Just AuctionDatum {adAuction} -> aSeller adAuction == seller
         ]
   case xs of
     [(oref, o)] -> case _ciTxOutDatum o of
@@ -436,31 +446,24 @@ findAuction cs tn = do
         Just d@AuctionDatum {..}
           | aCurrency adAuction == cs && aToken adAuction == tn -> return (oref, o, d)
           | otherwise -> throwError "auction token missmatch"
-    _ -> throwError "auction utxo not found"
-
-startAuction :: StartParams -> Contract (Last Auction) s Text ()
-startAuction StartParams {..} = do
-  pkh <- ownPaymentPubKeyHash
-  let auction =
-        Auction
-          { aSeller = pkh,
-            aDeadline = spDeadline,
-            aMinBid = spMinBid,
-            aCurrency = spCurrency,
-            aToken = spToken
-          }
-  tell $ Last $ Just auction
-  logInfo $ "started token sale " Haskell.++ Haskell.show auction
+    [] -> throwError "auction utxo not found"
+    _ -> throwError "auction utxo length > 1"
 
 type AuctionStartSchema =
   Endpoint "start" StartParams
 
-useStartEndpoint :: Contract (Last Auction) AuctionStartSchema Text ()
-useStartEndpoint =
-  forever $
-    handleError logError $
-      awaitPromise $
-        endpoint @"start" $ startAuction
+useStartEndpoint' ::
+  ( AsContractError e,
+    HasEndpoint "start" StartParams s
+  ) =>
+  Contract w s e ()
+useStartEndpoint' =
+  forever $ awaitPromise start'
+  where
+    start' = endpoint @"start" $ start
+
+useStartEndpoint :: Contract () AuctionStartSchema Text ()
+useStartEndpoint = useStartEndpoint'
 
 useEndpoints' ::
   ( HasEndpoint "bid" BidParams s,
@@ -475,13 +478,24 @@ useEndpoints' =
     bid' = endpoint @"bid" bid
     close' = endpoint @"close" close
 
-type AuctionSchema =
+type AuctionUseSchema =
   AuctionStartSchema
     .\/ Endpoint "bid" BidParams
     .\/ Endpoint "close" CloseParams
 
+type AuctionSchema =
+  AuctionStartSchema .\/ AuctionUseSchema
+
+-- TODO: Can we do this instead? useEndpoints = useEndpoints' <> useStartEndpoint'
 useEndpoints :: Contract () AuctionSchema Text ()
-useEndpoints = useEndpoints'
+useEndpoints =
+  forever $
+    handleError logError $
+      awaitPromise (start' `select` bid' `select` close')
+  where
+    start' = endpoint @"start" $ start
+    bid' = endpoint @"bid" bid
+    close' = endpoint @"close" close
 
 -- useEndpoints :: Contract () AuctionSchema Text ()
 -- useEndpoints =

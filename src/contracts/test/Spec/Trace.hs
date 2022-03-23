@@ -14,6 +14,7 @@ module Spec.Trace where
 import Control.Exception
 import Control.Lens
 import Control.Monad (void)
+import Control.Monad.Freer.Extras as Extras
 import Data.Default (Default (..))
 import Data.IORef
 import qualified Data.Map as Map
@@ -21,7 +22,9 @@ import EnglishAuction
 import Ledger
 import qualified Ledger.Ada as Ada
 import Ledger.TimeSlot (slotToEndPOSIXTime)
+import Ledger.Value (AssetClass (unAssetClass))
 import Ledger.Value as Value
+import Plutus.Contract as Contract
 import Plutus.Contract.Test
 import Plutus.Contract.Test.Coverage
 import Plutus.Contract.Test.Coverage.ReportCoverage (writeCoverageReport)
@@ -32,50 +35,8 @@ import Test.Tasty
 import qualified Test.Tasty.HUnit as HUnit
 import Prelude (IO, Semigroup (..), Show (..), String, putStrLn)
 
--- This is the hash of the policy script
--- It is run when this is consumed to check who is allowed to mint etc
--- OBS: Definitely out of date, but useful as example
-assetSymbol :: Ledger.CurrencySymbol
-assetSymbol = "48dbfffab1d62765a090c305924a1df65f950a2f630f15d13345fd29"
-
-assetToken :: Ledger.TokenName
-assetToken = "TUI"
-
-token :: AssetClass
-token = AssetClass (assetSymbol, assetToken)
-
-startParams :: StartParams
-startParams =
-  StartParams
-    { spDeadline = slotToEndPOSIXTime def 10,
-      spMinBid = 5_000_000,
-      spCurrency = assetSymbol,
-      spToken = assetToken
-    }
-
-startDatum :: AuctionDatum
-startDatum =
-  AuctionDatum
-    { adAuction = auction,
-      adHighestBid = Nothing
-    }
-  where
-    auction =
-      Auction
-        { aSeller = mockWalletPaymentPubKeyHash w1,
-          aDeadline = spDeadline startParams,
-          aMinBid = spMinBid startParams,
-          aCurrency = spCurrency startParams,
-          aToken = spToken startParams
-        }
-
-tests :: TestTree
-tests =
-  checkPredicateOptions
-    myOptions
-    "token sale trace"
-    myPredicate
-    myTrace
+tokenA :: AssetClass
+tokenA = AssetClass ("aa", "A")
 
 testCoverage :: IO ()
 testCoverage = do
@@ -100,21 +61,29 @@ emCfg :: EmulatorConfig
 emCfg = EmulatorConfig (Left $ Map.fromList [(knownWallet w, v) | w <- [1 .. 3]]) def def
   where
     v :: Value
-    v = Ada.lovelaceValueOf 1_000_000_000 <> assetClassValue token 1000
+    v = Ada.lovelaceValueOf 1_000_000_000 <> assetClassValue tokenA 1000
 
 myOptions :: CheckOptions
 myOptions = defaultCheckOptions & emulatorConfig .~ emCfg
+
+test1 :: TestTree
+test1 =
+  checkPredicateOptions
+    myOptions
+    "token sale trace"
+    myPredicate
+    myTrace
 
 myPredicate :: TracePredicate
 myPredicate =
   walletFundsChange
     w1
-    ( Ada.lovelaceValueOf winningBid <> assetClassValue token (-1)
+    ( Ada.lovelaceValueOf winningBid <> assetClassValue tokenA (-1)
         <> negate minUtxoAda
     )
     .&&. walletFundsChange
       w2
-      ( Ada.lovelaceValueOf (- winningBid) <> assetClassValue token 1
+      ( Ada.lovelaceValueOf (- winningBid) <> assetClassValue tokenA 1
           <> minUtxoAda
       )
     .&&. walletFundsChange w3 (Ada.lovelaceValueOf 0)
@@ -128,43 +97,233 @@ myTrace = do
   h2 <- Emulator.activateContractWallet w2 useEndpoints
   h3 <- Emulator.activateContractWallet w3 useEndpoints
 
-  callEndpoint @"start" h1 startParams
+  let (currency, token) = unAssetClass tokenA
+
+  callEndpoint @"start"
+    h1
+    StartParams
+      { spDeadline = slotToEndPOSIXTime def 10,
+        spMinBid = 5_000_000,
+        spCurrency = currency,
+        spToken = token
+      }
 
   void $ Emulator.waitNSlots 1
 
   callEndpoint @"bid" h2 $
     BidParams
-      { bpCurrency = assetSymbol,
-        bpToken = assetToken,
-        bpBid = 10_000_000
+      { bpCurrency = "aa",
+        bpToken = "A",
+        bpBid = 10_000_000,
+        bpSeller = mockWalletPaymentPubKeyHash w1
       }
   void $ Emulator.waitNSlots 1
 
   callEndpoint @"bid" h3 $
     BidParams
-      { bpCurrency = assetSymbol,
-        bpToken = assetToken,
-        bpBid = 15_000_000
+      { bpCurrency = "aa",
+        bpToken = "A",
+        bpBid = 15_000_000,
+        bpSeller = mockWalletPaymentPubKeyHash w1
       }
 
   void $ Emulator.waitNSlots 1
 
   callEndpoint @"bid" h2 $
     BidParams
-      { bpCurrency = assetSymbol,
-        bpToken = assetToken,
-        bpBid = 20_000_000
+      { bpCurrency = "aa",
+        bpToken = "A",
+        bpBid = 20_000_000,
+        bpSeller = mockWalletPaymentPubKeyHash w1
       }
 
   void $ Emulator.waitUntilSlot 20
 
   callEndpoint @"close" h1 $
     CloseParams
-      { cpCurrency = assetSymbol,
-        cpToken = assetToken
+      { cpCurrency = "aa",
+        cpToken = "A",
+        cpSeller = mockWalletPaymentPubKeyHash w1
       }
 
   void $ Emulator.waitNSlots 1
+
+test2 :: TestTree
+test2 =
+  checkPredicateOptions
+    myOptions
+    "token sale trace"
+    myPredicate2
+    myTrace2
+
+myPredicate2 :: TracePredicate
+myPredicate2 =
+  walletFundsChange
+    w1
+    (negate (assetClassValue tokenA 1) <> negate minUtxoAda)
+    .&&. walletFundsChange
+      w2
+      ( negate (assetClassValue tokenA 1)
+          <> negate minUtxoAda
+          <> negate (Ada.lovelaceValueOf 20_000_000)
+          <> Ada.lovelaceValueOf 2_000_000
+      )
+    .&&. walletFundsChange
+      w3
+      ( negate (Ada.lovelaceValueOf 2_000_000)
+          <> assetClassValue tokenA 1
+          <> minUtxoAda
+      )
+  where
+    minUtxoAda = Ada.lovelaceValueOf minLovelace
+
+myTrace2 :: Emulator.EmulatorTrace ()
+myTrace2 = do
+  h1 <- Emulator.activateContractWallet w1 useEndpoints
+  h2 <- Emulator.activateContractWallet w2 useEndpoints
+  h3 <- Emulator.activateContractWallet w3 useEndpoints
+
+  let (currency, token) = unAssetClass tokenA
+
+  callEndpoint @"start"
+    h1
+    StartParams
+      { spDeadline = slotToEndPOSIXTime def 10,
+        spMinBid = 0,
+        spCurrency = currency,
+        spToken = token
+      }
+
+  void $ Emulator.waitNSlots 3
+
+  callEndpoint @"start"
+    h2
+    StartParams
+      { spDeadline = slotToEndPOSIXTime def 10,
+        spMinBid = 0,
+        spCurrency = currency,
+        spToken = token
+      }
+  void $ Emulator.waitNSlots 3
+
+  callEndpoint @"bid"
+    h3
+    BidParams
+      { bpCurrency = currency,
+        bpToken = token,
+        bpBid = 2_000_000,
+        bpSeller = mockWalletPaymentPubKeyHash w2
+      }
+
+  void $ Emulator.waitNSlots 1
+
+  callEndpoint @"bid"
+    h2
+    BidParams
+      { bpCurrency = currency,
+        bpToken = token,
+        bpBid = 20_000_000,
+        bpSeller = mockWalletPaymentPubKeyHash w1
+      }
+
+  void $ Emulator.waitUntilSlot 20
+
+  Extras.logInfo $ show "### WALLET 1: " <> show (mockWalletPaymentPubKeyHash w1)
+  Extras.logInfo $ show "### WALLET 2: " <> show (mockWalletPaymentPubKeyHash w2)
+
+  callEndpoint @"close"
+    h1
+    CloseParams
+      { cpCurrency = currency,
+        cpToken = token,
+        cpSeller = mockWalletPaymentPubKeyHash w2
+      }
+
+  void $ Emulator.waitUntilSlot 11
+
+test3 :: TestTree
+test3 =
+  checkPredicateOptions
+    myOptions
+    "token sale trace"
+    myPredicate3
+    myTrace3
+
+myBid31 = 100_000
+
+myBid32 = 200_000
+
+myPredicate3 :: TracePredicate
+myPredicate3 =
+  walletFundsChange
+    w1
+    ( negate (Ada.lovelaceValueOf myBid31)
+    -- <> minUtxoAda
+    -- <> assetClassValue tokenA 1
+    )
+    .&&. walletFundsChange
+      w2
+      ( -- Ada.lovelaceValueOf myBid3 <>
+        negate (assetClassValue tokenA 1)
+          <> negate minUtxoAda
+      )
+    .&&. walletFundsChange w3 (negate (Ada.lovelaceValueOf myBid32))
+  where
+    minUtxoAda = Ada.lovelaceValueOf minLovelace
+
+myTrace3 :: Emulator.EmulatorTrace ()
+myTrace3 = do
+  h1 <- Emulator.activateContractWallet w1 useEndpoints
+  h2 <- Emulator.activateContractWallet w2 useEndpoints
+  h3 <- Emulator.activateContractWallet w3 useEndpoints
+
+  let (currency, token) = unAssetClass tokenA
+
+  callEndpoint @"start"
+    h2
+    StartParams
+      { spDeadline = slotToEndPOSIXTime def 10,
+        spMinBid = 0,
+        spCurrency = currency,
+        spToken = token
+      }
+
+  void $ Emulator.waitNSlots 3
+
+  callEndpoint @"bid"
+    h1
+    BidParams
+      { bpCurrency = currency,
+        bpToken = token,
+        bpBid = myBid31,
+        bpSeller = mockWalletPaymentPubKeyHash w2
+      }
+
+  void $ Emulator.waitNSlots 3
+
+  callEndpoint @"bid"
+    h3
+    BidParams
+      { bpCurrency = currency,
+        bpToken = token,
+        bpBid = myBid32,
+        bpSeller = mockWalletPaymentPubKeyHash w2
+      }
+
+  void $ Emulator.waitNSlots 3
+
+  callEndpoint @"close"
+    h1
+    CloseParams
+      { cpCurrency = currency,
+        cpToken = token,
+        cpSeller = mockWalletPaymentPubKeyHash w2
+      }
+
+  void $ Emulator.waitNSlots 3
+
+  Extras.logInfo $ show "### WALLET 1: " <> show (mockWalletPaymentPubKeyHash w1)
+  Extras.logInfo $ show "### WALLET 2: " <> show (mockWalletPaymentPubKeyHash w2)
 
 checkPredicateOptionsCoverage ::
   CheckOptions ->
@@ -179,3 +338,6 @@ checkPredicateOptionsCoverage options nm (CoverageRef ioref) predicate action =
 
 test :: IO ()
 test = Emulator.runEmulatorTraceIO' def emCfg myTrace
+
+tests :: [TestTree]
+tests = [test1, test2, test3]

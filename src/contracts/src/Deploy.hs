@@ -160,7 +160,8 @@ customBid =
     BidParams
       { bpCurrency = assetSymbol,
         bpToken = assetToken,
-        bpBid = 10 * 1000000
+        bpBid = 10 * 1000000,
+        bpSeller = wallet1Pkh
       }
 
 bidRedeemer :: Ledger.Redeemer

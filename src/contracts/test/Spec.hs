@@ -14,6 +14,4 @@ tests :: TestTree
 tests =
   testGroup
     "token sale"
-    [ Spec.Trace.tests,
-      Spec.Model.tests
-    ]
+    (Spec.Trace.tests ++ [Spec.Model.tests])

@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -18,29 +19,37 @@
 
 module Spec.Model
   ( tests,
-    test,
     AuctionModel (..),
   )
 where
 
 import Control.Lens hiding (elements)
-import Control.Monad (void)
+import Control.Monad (void, when)
+import Control.Monad.Freer.Extras as Extras
+import Data.Default (Default (def))
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.Monoid (Last (..))
 import Data.String (IsString (..))
 import Data.Text (Text)
 import EnglishAuction hiding (Bid, Close)
 import Ledger
-  ( AssetClass,
-    CurrencySymbol,
+  ( CurrencySymbol,
+    Interval,
+    POSIXTime,
+    Slot (Slot),
+    contains,
+    from,
+    minAdaTxOut,
+    to,
   )
-import Ledger.Ada as Ada (lovelaceValueOf)
+import qualified Ledger.Ada as Ada
+import Ledger.TimeSlot (slotToBeginPOSIXTime, slotToEndPOSIXTime, slotToPOSIXTimeRange)
 import Ledger.Value
   ( AssetClass (AssetClass),
     CurrencySymbol (CurrencySymbol),
     TokenName (..),
+    assetClass,
     assetClassValue,
     unAssetClass,
   )
@@ -54,16 +63,19 @@ import Plutus.Contract.Test
     w2,
   )
 import Plutus.Contract.Test.ContractModel as Test
+import Plutus.Contract.Test.ContractModel.Symbolics (SymValue (actualValPart))
+import Plutus.Contract.Trace (mockWalletPaymentPubKeyHash)
 import Plutus.Trace.Emulator as Trace
 import PlutusTx.Prelude (BuiltinByteString)
-import Spec.Trace (startParams, token)
 import Test.QuickCheck as QuickCheck
 import Test.Tasty (TestTree)
 import Test.Tasty.QuickCheck (testProperty)
 
 data AuctionState = AuctionState
-  { _asHighestBid :: !(Maybe Integer),
-    _asToken :: !Integer
+  { _asMinBid :: !Integer,
+    _asHighestBid :: !(Maybe Integer),
+    _asToken :: !(Maybe (AssetClass, Integer)),
+    _asDeadline :: !(Maybe POSIXTime)
   }
   deriving (Show)
 
@@ -79,7 +91,7 @@ tests = testProperty "english auction model" prop_Auction
 
 instance ContractModel AuctionModel where
   data Action AuctionModel
-    = Start Wallet
+    = Start Wallet StartParams
     | Bid Wallet Wallet BidParams -- First `Wallet` owns auction, second runs/interacts with contract
     | Close Wallet Wallet CloseParams
     deriving (Show, Eq)
@@ -87,11 +99,11 @@ instance ContractModel AuctionModel where
   data ContractInstanceKey AuctionModel w s e p where
     StartKey ::
       Wallet ->
-      ContractInstanceKey AuctionModel (Last Auction) AuctionStartSchema Text ()
+      ContractInstanceKey AuctionModel () AuctionStartSchema Text ()
     UseKey ::
       Wallet ->
       Wallet ->
-      ContractInstanceKey AuctionModel () AuctionSchema Text ()
+      ContractInstanceKey AuctionModel () AuctionUseSchema Text ()
 
   -- Maybe necessary to have two because one starts a contract and the other one operates
   -- on a running contract?
@@ -109,7 +121,7 @@ instance ContractModel AuctionModel where
   arbitraryAction :: ModelState AuctionModel -> Gen (Action AuctionModel)
   arbitraryAction _ =
     oneof
-      [ Start <$> genWallet,
+      [ Start <$> genWallet <*> genStartParams,
         Bid <$> genWallet <*> genWallet <*> genBidParams,
         Close <$> genWallet <*> genWallet <*> genCloseParams
       ]
@@ -124,28 +136,78 @@ instance ContractModel AuctionModel where
 
   -- Check if the state of a wallet is Just, if so we must've started
   precondition :: ModelState AuctionModel -> Action AuctionModel -> Bool
-  precondition s (Start w) = isNothing $ getAuctionState' s w
-  precondition s (Bid v _ _) = isJust $ getAuctionState' s v
-  precondition s (Close v _ _) = isJust $ getAuctionState' s v
+  precondition s (Start w _) = isNothing $ getAuctionState' s w
+  precondition s (Bid v _ BidParams {bpSeller}) =
+    isJust (getAuctionState' s v)
+      && mockWalletPaymentPubKeyHash v == bpSeller
+  precondition s (Close v _ CloseParams {cpSeller}) =
+    isJust (getAuctionState' s v) && mockWalletPaymentPubKeyHash v == cpSeller
 
   nextState :: Action AuctionModel -> Spec AuctionModel ()
-  nextState (Start w) = do
+  nextState (Start w StartParams {spCurrency, spToken, spDeadline, spMinBid}) = do
     wait 3
-    (auctionModel . at w) $= Just (AuctionState Nothing 1)
-  nextState (Bid v _ b) = do
+    let token = assetClass spCurrency spToken
+    (auctionModel . at w) $= Just (AuctionState spMinBid Nothing (Just (token, 1)) (Just spDeadline))
+    withdraw w $ assetClassValue token 1
+    withdraw w $ Ada.toValue minAdaTxOut
+  nextState (Bid v w BidParams {bpCurrency, bpToken, bpBid, bpSeller}) = do
     wait 3
-    -- TODO: Check if bid is actually higher
-    (auctionModel . ix v . asHighestBid) $= Just (bpBid b)
-  nextState (Close v w p) = do
+    started <- hasStarted v
+    when started $ do
+      as <- getAuctionState v
+      -- bc <- actualValPart <$> askModelState (view $ balanceChange w)
+      case as of
+        Just t -> do
+          let highestBid = fromMaybe 0 (t ^. asHighestBid)
+              minBid = t ^. asMinBid
+              correctToken =
+                maybe
+                  False
+                  (\(token, n) -> token == assetClass bpCurrency bpToken && n > 0)
+                  (t ^. asToken)
+              isAcceptableBid =
+                bpBid > highestBid && bpBid > minBid && correctToken
+
+          when isAcceptableBid $ do
+            let bidValue = Ada.lovelaceValueOf bpBid
+            withdraw w bidValue
+            -- (auctionModel . ix v . tssLovelace) $~ (+ (- l))
+            (auctionModel . ix v . asHighestBid) $= Just bpBid
+        _ -> return ()
+  nextState (Close v w CloseParams {cpCurrency, cpToken, cpSeller}) = do
     wait 3
-    (auctionModel . at v) $= Just (AuctionState Nothing 1)
-    do
-      m <- getAuctionState v
-      case m of
-        Just t
-          | t ^. asToken > 0 && isJust (t ^. asHighestBid) -> do
-            deposit v (lovelaceValueOf (fromMaybe 0 $ t ^. asHighestBid))
-            deposit w (assetClassValue (tokens Map.! v) (t ^. asToken))
+    started <- hasStarted v
+    when started $ do
+      as <- getAuctionState v
+      ms <- getModelState
+      case as of
+        Just t -> do
+          let hasToken =
+                maybe
+                  False
+                  (\(token, n) -> token == assetClass cpCurrency cpToken && n > 0)
+                  (t ^. asToken)
+              highestBidM = t ^. asHighestBid
+              validUtxo = maybe True (>= minLovelace) highestBidM
+          -- untilDeadlineM :: Maybe (Interval POSIXTime)
+          -- untilDeadlineM = Ledger.to <$> t ^. asDeadline
+          -- currentSlot :: Slot
+          -- currentSlot = ms ^. Test.currentSlot
+          -- untilNow :: Interval POSIXTime
+          -- untilNow = Ledger.to $ slotToBeginPOSIXTime def currentSlot
+          -- isBeforeDeadline :: Bool
+          -- isBeforeDeadline = maybe False (untilNow `Ledger.contains`) untilDeadlineM
+
+          -- correctBidSlotRange = to (aDeadline auction) `contains` txInfoValidRange info
+          when (validUtxo && hasToken) $ do
+            when (isJust highestBidM) $ do
+              deposit v (Ada.lovelaceValueOf (fromMaybe 0 highestBidM))
+              deposit w $ Ada.toValue minAdaTxOut
+            when (isNothing highestBidM) $ do
+              deposit v $ Ada.toValue minAdaTxOut
+              deposit v (maybe mempty (uncurry assetClassValue) (t ^. asToken))
+
+            (auctionModel . at v) $= Nothing
         _ -> return ()
 
   -- Maybe we need this now that we don't use "init" endpoint?
@@ -164,8 +226,8 @@ instance ContractModel AuctionModel where
   instanceContract _ (UseKey _ _) () = useEndpoints'
 
   perform :: HandleFun AuctionModel -> (SymToken -> AssetClass) -> ModelState AuctionModel -> Action AuctionModel -> SpecificationEmulatorTrace ()
-  perform h _ m (Start v) =
-    withWait m $ callEndpoint @"start" (h $ StartKey v) startParams
+  perform h _ m (Start v p) =
+    withWait m $ callEndpoint @"start" (h $ StartKey v) p
   perform h _ m (Bid v w p) =
     withWait m $ callEndpoint @"bid" (h $ UseKey v w) p
   perform h _ m (Close v w p) =
@@ -173,6 +235,9 @@ instance ContractModel AuctionModel where
 
 withWait :: ModelState AuctionModel -> SpecificationEmulatorTrace () -> SpecificationEmulatorTrace ()
 withWait m c = void $ c >> waitUntilSlot ((m ^. Test.currentSlot) + 3)
+
+hasStarted :: Wallet -> Spec AuctionModel Bool
+hasStarted v = isJust <$> getAuctionState v
 
 deriving instance Eq (ContractInstanceKey AuctionModel w s e p)
 
@@ -207,30 +272,29 @@ genNonNeg = getNonNegative <$> arbitrary
 instance Arbitrary BuiltinByteString where
   arbitrary = arbitrary
 
+genStartParams :: Gen StartParams
+genStartParams =
+  (uncurry <$> partialParams) <*> randomToken
+  where
+    partialParams =
+      StartParams
+        <$> (slotToEndPOSIXTime def . Slot <$> genNonNeg)
+        <*> ((* 1_000_000) <$> genNonNeg)
+    randomToken = elements (unAssetClass <$> Map.elems tokens)
+
 genBidParams :: Gen BidParams
 genBidParams =
-  BidParams
-    <$> (fst <$> randomToken)
-    <*> (snd <$> randomToken)
-    <*> genNonNeg
+  (uncurry BidParams <$> randomToken) <*> genNonNeg <*> seller
   where
     randomToken = elements (unAssetClass <$> Map.elems tokens)
+    seller = mockWalletPaymentPubKeyHash <$> genWallet
 
---     CloseParams
---       { cpCurrency = currencySymbol,
---         cpToken = tokenName
---       }
--- where
---   (currencySymbol, tokenName) = unAssetClass token
-
--- TODO: Use the oneOf instead of arbitrary, and have a limited set of currencySymbol, tokenName pairs to generate from
 genCloseParams :: Gen CloseParams
 genCloseParams =
-  CloseParams
-    <$> (fst <$> randomToken)
-    <*> (snd <$> randomToken)
+  uncurry CloseParams <$> randomToken <*> seller
   where
     randomToken = elements (unAssetClass <$> Map.elems tokens)
+    seller = mockWalletPaymentPubKeyHash <$> genWallet
 
 tokenAmt :: Integer
 tokenAmt = 1_000
@@ -247,11 +311,8 @@ prop_Auction =
     d =
       Map.fromList $
         [ ( w,
-            lovelaceValueOf 1_000_000_000
+            Ada.lovelaceValueOf 1_000_000_000
               <> mconcat [assetClassValue t tokenAmt | t <- Map.elems tokens]
           )
           | w <- wallets
         ]
-
-test :: IO ()
-test = quickCheck prop_Auction
