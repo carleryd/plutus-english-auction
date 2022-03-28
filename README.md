@@ -1,7 +1,8 @@
 # Introduction
 This stack has the ambition to be a frontend written in PureScript and a backend in Haskell which is integrated with the [Plutus PAB](https://github.com/input-output-hk/plutus-apps).
 
-Currently most of the work has gone into the Plutus Contracts which feature an English Auction contract, originally copied from lecture 1 of the [Plutus Pioneer Program](https://www.youtube.com/channel/UCcAwSpbpQDDzEDRQqcDH8Iw/playlists) but has diverged after undergoing several modifications to work with newer versions of [plutus-apps](https://github.com/input-output-hk/plutus-apps).
+Currently most of the work has gone into the [Plutus Contracts](https://github.com/carleryd/plutus-english-auction/tree/main/src/contracts), and in particular the Trace and Model testing of the [English Auction contract](https://github.com/carleryd/plutus-english-auction/blob/main/src/contracts/src/EnglishAuction.hs).
+It was originally copied from lecture 1 of the [Plutus Pioneer Program](https://www.youtube.com/channel/UCcAwSpbpQDDzEDRQqcDH8Iw/playlists) but has diverged after undergoing several modifications to work with newer versions of [plutus-apps](https://github.com/input-output-hk/plutus-apps).
 
 The Haskell and PureScript stack is fully functional, which at the moment serves PureScript code which interacts with [BlockFrost](https://blockfrost.io/) endpoints.
 
