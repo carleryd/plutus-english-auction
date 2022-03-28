@@ -27,6 +27,11 @@ import PlutusTx (Data (..))
 import qualified PlutusTx
 import PlutusTx.Prelude (BuiltinByteString)
 
+-- ABOUT
+-- This can be used to publish our contract on the testnet or mainnet using `cardano-cli`
+-- It could use a lot of work to become useful to anyone else.
+-- I've abondoned this logic in favor of using the PAB.
+
 wallet1Pkh :: Ledger.PaymentPubKeyHash
 wallet1Pkh =
   Ledger.PaymentPubKeyHash
@@ -92,8 +97,7 @@ assetToken = Value.TokenName tuiAssetName
 startParams :: StartParams
 startParams =
   StartParams
-    { spDeadline = slotToEndPOSIXTime def 10,
-      spMinBid = 5 * 1000000,
+    { spMinBid = 5 * 1000000,
       spCurrency = assetSymbol,
       spToken = assetToken
     }
@@ -108,7 +112,6 @@ startDatum =
     auction =
       Auction
         { aSeller = wallet1Pkh,
-          aDeadline = spDeadline startParams,
           aMinBid = spMinBid startParams,
           aCurrency = spCurrency startParams,
           aToken = spToken startParams

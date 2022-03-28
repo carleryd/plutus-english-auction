@@ -25,8 +25,6 @@ where
 
 import Control.Lens hiding (elements)
 import Control.Monad (void, when)
-import Control.Monad.Freer.Extras as Extras
-import Data.Default (Default (def))
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -35,22 +33,15 @@ import Data.Text (Text)
 import EnglishAuction hiding (Bid, Close)
 import Ledger
   ( CurrencySymbol,
-    Interval,
-    POSIXTime,
-    Slot (Slot),
-    contains,
-    from,
     minAdaTxOut,
-    to,
   )
 import qualified Ledger.Ada as Ada
-import Ledger.TimeSlot (slotToBeginPOSIXTime, slotToEndPOSIXTime, slotToPOSIXTimeRange)
 import Ledger.Value
   ( AssetClass (AssetClass),
-    CurrencySymbol (CurrencySymbol),
     TokenName (..),
     assetClass,
     assetClassValue,
+    assetClassValueOf,
     unAssetClass,
   )
 import Plutus.Contract
@@ -74,8 +65,7 @@ import Test.Tasty.QuickCheck (testProperty)
 data AuctionState = AuctionState
   { _asMinBid :: !Integer,
     _asHighestBid :: !(Maybe Integer),
-    _asToken :: !(Maybe (AssetClass, Integer)),
-    _asDeadline :: !(Maybe POSIXTime)
+    _asToken :: !(Maybe (AssetClass, Integer))
   }
   deriving (Show)
 
@@ -144,19 +134,19 @@ instance ContractModel AuctionModel where
     isJust (getAuctionState' s v) && mockWalletPaymentPubKeyHash v == cpSeller
 
   nextState :: Action AuctionModel -> Spec AuctionModel ()
-  nextState (Start w StartParams {spCurrency, spToken, spDeadline, spMinBid}) = do
+  nextState (Start w StartParams {spCurrency, spToken, spMinBid}) = do
     wait 3
     let token = assetClass spCurrency spToken
-    (auctionModel . at w) $= Just (AuctionState spMinBid Nothing (Just (token, 1)) (Just spDeadline))
+    (auctionModel . at w) $= Just (AuctionState spMinBid Nothing (Just (token, 1)))
     withdraw w $ assetClassValue token 1
     withdraw w $ Ada.toValue minAdaTxOut
-  nextState (Bid v w BidParams {bpCurrency, bpToken, bpBid, bpSeller}) = do
+  nextState (Bid v w BidParams {bpCurrency, bpToken, bpBid}) = do
     wait 3
     started <- hasStarted v
     when started $ do
-      as <- getAuctionState v
-      -- bc <- actualValPart <$> askModelState (view $ balanceChange w)
-      case as of
+      cs <- getAuctionState v
+      bc <- actualValPart <$> askModelState (view $ balanceChange w)
+      case cs of
         Just t -> do
           let highestBid = fromMaybe 0 (t ^. asHighestBid)
               minBid = t ^. asMinBid
@@ -167,20 +157,19 @@ instance ContractModel AuctionModel where
                   (t ^. asToken)
               isAcceptableBid =
                 bpBid > highestBid && bpBid > minBid && bpBid > minLovelace && correctToken
+              hasFunds = assetClassValueOf bc (tokens Map.! v) > bpBid
 
-          when isAcceptableBid $ do
+          when (isAcceptableBid && hasFunds) $ do
             let bidValue = Ada.lovelaceValueOf bpBid
             withdraw w bidValue
-            -- (auctionModel . ix v . tssLovelace) $~ (+ (- l))
             (auctionModel . ix v . asHighestBid) $= Just bpBid
         _ -> return ()
-  nextState (Close v w CloseParams {cpCurrency, cpToken, cpSeller}) = do
+  nextState (Close v w CloseParams {cpCurrency, cpToken}) = do
     wait 3
     started <- hasStarted v
     when started $ do
-      as <- getAuctionState v
-      ms <- getModelState
-      case as of
+      cs <- getAuctionState v
+      case cs of
         Just t -> do
           let hasToken =
                 maybe
@@ -189,16 +178,7 @@ instance ContractModel AuctionModel where
                   (t ^. asToken)
               highestBidM = t ^. asHighestBid
               validUtxo = maybe True (>= minLovelace) highestBidM
-          -- untilDeadlineM :: Maybe (Interval POSIXTime)
-          -- untilDeadlineM = Ledger.to <$> t ^. asDeadline
-          -- currentSlot :: Slot
-          -- currentSlot = ms ^. Test.currentSlot
-          -- untilNow :: Interval POSIXTime
-          -- untilNow = Ledger.to $ slotToBeginPOSIXTime def currentSlot
-          -- isBeforeDeadline :: Bool
-          -- isBeforeDeadline = maybe False (untilNow `Ledger.contains`) untilDeadlineM
 
-          -- correctBidSlotRange = to (aDeadline auction) `contains` txInfoValidRange info
           when (validUtxo && hasToken) $ do
             when (isJust highestBidM) $ do
               deposit v (Ada.lovelaceValueOf (fromMaybe 0 highestBidM))
@@ -210,7 +190,6 @@ instance ContractModel AuctionModel where
             (auctionModel . at v) $= Nothing
         _ -> return ()
 
-  -- Maybe we need this now that we don't use "init" endpoint?
   startInstances ::
     ModelState AuctionModel ->
     Action AuctionModel ->
@@ -277,9 +256,7 @@ genStartParams =
   (uncurry <$> partialParams) <*> randomToken
   where
     partialParams =
-      StartParams
-        <$> (slotToEndPOSIXTime def . Slot <$> genNonNeg)
-        <*> ((* 1_000_000) <$> genNonNeg)
+      StartParams <$> ((* 1_000_000) <$> genNonNeg)
     randomToken = elements (unAssetClass <$> Map.elems tokens)
 
 genBidParams :: Gen BidParams

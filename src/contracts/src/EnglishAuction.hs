@@ -57,7 +57,7 @@ import GHC.Generics (Generic)
 import Ledger
 import Ledger.Ada as Ada (lovelaceValueOf)
 import qualified Ledger.Constraints as Constraints
-import Ledger.TimeSlot (slotToEndPOSIXTime)
+import Ledger.TimeSlot (slotToBeginPOSIXTime)
 import qualified Ledger.Typed.Scripts as Scripts
 import Ledger.Value as Value
 import Playground.Contract (ensureKnownCurrencies, printJson, printSchemas, stage)
@@ -96,7 +96,6 @@ minLovelace = 2000000
 
 data Auction = Auction
   { aSeller :: !PaymentPubKeyHash,
-    aDeadline :: !POSIXTime,
     aMinBid :: !Integer,
     aCurrency :: !CurrencySymbol,
     aToken :: !TokenName
@@ -107,7 +106,6 @@ instance Eq Auction where
   {-# INLINEABLE (==) #-}
   a == b =
     (aSeller a == aSeller b)
-      && (aDeadline a == aDeadline b)
       && (aMinBid a == aMinBid b)
       && (aCurrency a == aCurrency b)
       && (aToken a == aToken b)
@@ -163,32 +161,30 @@ minBid AuctionDatum {adHighestBid, adAuction} =
 {-# INLINEABLE mkAuctionValidator #-}
 mkAuctionValidator :: AuctionDatum -> AuctionAction -> ScriptContext -> Bool
 mkAuctionValidator ad redeemer ctx =
-  case redeemer of
-    MkBid b@Bid {..} ->
-      traceIfFalse "wrong input value" correctInputValue
-        && traceIfFalse "bid too low" (sufficientBid bBid)
-        && traceIfFalse "wrong output datum" (correctBidOutputDatum b)
-        && traceIfFalse "wrong output value" (correctBidOutputValue bBid)
-        && traceIfFalse "wrong refund" correctBidRefund
-    -- && traceIfFalse "too late" correctBidSlotRange
-    Close ->
-      -- traceIfFalse "too early" correctCloseSlotRange
-      case adHighestBid ad of
-        Nothing ->
-          traceIfFalse
-            "expected seller to get token"
-            ( getsValue (aSeller auction) $
-                tokenValue
-                  <> Ada.lovelaceValueOf minLovelace
-            )
-        Just (Bid bBidder bBid) ->
-          traceIfFalse
-            "expected highest bidder to get token"
-            (getsValue bBidder $ tokenValue <> Ada.lovelaceValueOf minLovelace)
-            && traceIfFalse
-              "expected seller to get highest bid"
-              (getsValue (aSeller auction) $ Ada.lovelaceValueOf bBid)
-    Abort -> traceIfTrue "### Redeemer == Abort ###" True
+  traceIfFalse "wrong input value" correctInputValue
+    && case redeemer of
+      MkBid b@Bid {..} ->
+        traceIfFalse "bid too low" (sufficientBid bBid)
+          && traceIfFalse "wrong output datum" (correctBidOutputDatum b)
+          && traceIfFalse "wrong output value" (correctBidOutputValue bBid)
+          && traceIfFalse "wrong refund" correctBidRefund
+      Close ->
+        case adHighestBid ad of
+          Nothing ->
+            traceIfFalse
+              "expected seller to get token"
+              ( getsValue (aSeller auction) $
+                  tokenValue
+                    <> Ada.lovelaceValueOf minLovelace
+              )
+          Just (Bid bBidder bBid) ->
+            traceIfFalse
+              "expected highest bidder to get token"
+              (getsValue bBidder $ tokenValue <> Ada.lovelaceValueOf minLovelace)
+              && traceIfFalse
+                "expected seller to get highest bid"
+                (getsValue (aSeller auction) $ Ada.lovelaceValueOf bBid)
+      Abort -> traceIfTrue "### Redeemer == Abort ###" True
   where
     getsValue :: PaymentPubKeyHash -> Value -> Bool
     getsValue h v =
@@ -282,11 +278,15 @@ mkAuctionValidator ad redeemer ctx =
               [o] -> txOutValue o == Ada.lovelaceValueOf bBid
               _ -> traceError "expected exactly one refund output"
 
-    correctBidSlotRange :: Bool
-    correctBidSlotRange = to (aDeadline auction) `contains` txInfoValidRange info
+-- TODO: Couldn't get deadline logic to work with Model Checker. See [ISSUE].
+-- deadline :: POSIXTime
+-- deadline = slotToBeginPOSIXTime def (aDeadline auction)
 
-    correctCloseSlotRange :: Bool
-    correctCloseSlotRange = True
+-- correctBidSlotRange :: Bool
+-- correctBidSlotRange = to deadline `contains` txInfoValidRange info
+
+-- correctCloseSlotRange :: Bool
+-- correctCloseSlotRange = from deadline `contains` txInfoValidRange info
 
 typedAuctionValidator :: Scripts.TypedValidator Auctioning
 typedAuctionValidator =
@@ -309,8 +309,7 @@ tsCovIdx :: CoverageIndex
 tsCovIdx = getCovIdx $$(PlutusTx.compile [||mkAuctionValidator||])
 
 data StartParams = StartParams
-  { spDeadline :: !POSIXTime,
-    spMinBid :: !Integer,
+  { spMinBid :: !Integer,
     spCurrency :: !CurrencySymbol,
     spToken :: !TokenName
   }
@@ -337,7 +336,6 @@ start StartParams {..} = do
   let a =
         Auction
           { aSeller = pkh,
-            aDeadline = spDeadline,
             aMinBid = spMinBid,
             aCurrency = spCurrency,
             aToken = spToken
@@ -373,12 +371,10 @@ bid BidParams {bpCurrency, bpToken, bpBid, bpSeller} = do
       tx = case adHighestBid of
         Nothing ->
           Constraints.mustPayToTheScript d' v
-            -- <> Constraints.mustValidateIn (to $ aDeadline adAuction)
             <> Constraints.mustSpendScriptOutput oref r
         Just Bid {..} ->
           Constraints.mustPayToTheScript d' v
             <> Constraints.mustPayToPubKey bBidder (Ada.lovelaceValueOf bBid)
-            -- <> Constraints.mustValidateIn (to $ aDeadline adAuction)
             <> Constraints.mustSpendScriptOutput oref r
   ledgerTx <- submitTxConstraintsWith lookups tx
   void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
@@ -407,13 +403,10 @@ close (CloseParams cpCurrency cpToken cpSeller) = do
         case adHighestBid datum of
           Nothing ->
             Constraints.mustPayToPubKey seller (t <> Ada.lovelaceValueOf minLovelace)
-              -- <> Constraints.mustValidateIn (from $ aDeadline $ adAuction datum)
               <> Constraints.mustSpendScriptOutput oref r
           Just (Bid bBidder bBid) ->
             Constraints.mustPayToPubKey bBidder (t <> Ada.lovelaceValueOf minLovelace)
               <> Constraints.mustPayToPubKey seller (Ada.lovelaceValueOf bBid)
-              -- <> Constraints.mustValidateIn (from $ aDeadline $ adAuction datum)
-              -- AFAIK this triggers the spending. Without this then the `mustPayToPubKey` doesn't happen
               <> Constraints.mustSpendScriptOutput oref r
 
   ledgerTx <- submitTxConstraintsWith lookups tx
@@ -500,19 +493,6 @@ useEndpoints =
     start' = endpoint @"start" $ start
     bid' = endpoint @"bid" bid
     close' = endpoint @"close" close
-
--- useEndpoints :: Contract () AuctionSchema Text ()
--- useEndpoints =
---   awaitPromise
---     ( start'
---         `select` bid'
---         `select` close'
---     )
---     >> useEndpoints
---   where
---     start' = endpoint @"start" start
---     bid' = endpoint @"bid" bid
---     close' = endpoint @"close" close
 
 mkSchemaDefinitions ''AuctionSchema
 

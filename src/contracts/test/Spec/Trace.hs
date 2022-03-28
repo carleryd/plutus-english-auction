@@ -21,7 +21,7 @@ import qualified Data.Map as Map
 import EnglishAuction
 import Ledger
 import qualified Ledger.Ada as Ada
-import Ledger.TimeSlot (slotToEndPOSIXTime)
+import Ledger.TimeSlot (slotToBeginPOSIXTime)
 import Ledger.Value (AssetClass (unAssetClass))
 import Ledger.Value as Value
 import Plutus.Contract as Contract
@@ -102,8 +102,7 @@ myTrace = do
   callEndpoint @"start"
     h1
     StartParams
-      { spDeadline = slotToEndPOSIXTime def 10,
-        spMinBid = 5_000_000,
+      { spMinBid = 5_000_000,
         spCurrency = currency,
         spToken = token
       }
@@ -188,8 +187,7 @@ myTrace2 = do
   callEndpoint @"start"
     h1
     StartParams
-      { spDeadline = slotToEndPOSIXTime def 10,
-        spMinBid = 0,
+      { spMinBid = 0,
         spCurrency = currency,
         spToken = token
       }
@@ -199,8 +197,7 @@ myTrace2 = do
   callEndpoint @"start"
     h2
     StartParams
-      { spDeadline = slotToEndPOSIXTime def 10,
-        spMinBid = 0,
+      { spMinBid = 0,
         spCurrency = currency,
         spToken = token
       }
@@ -255,18 +252,6 @@ myBid32 = 200_000
 
 myPredicate3 :: TracePredicate
 myPredicate3 =
-  -- walletFundsChange
-  -- w1
-  -- ( negate (Ada.lovelaceValueOf myBid31)
-  -- -- <> minUtxoAda
-  -- -- <> assetClassValue tokenA 1
-  -- )
-  -- .&&. walletFundsChange
-  --   w2
-  --   ( -- Ada.lovelaceValueOf myBid3 <>
-  --     negate (assetClassValue tokenA 1)
-  --       <> negate minUtxoAda
-  --   )
   walletFundsChange w1 (Ada.lovelaceValueOf 0)
     .&&. walletFundsChange w2 (Ada.lovelaceValueOf 0)
     .&&. walletFundsChange w3 (Ada.lovelaceValueOf 0)
@@ -284,32 +269,9 @@ myTrace3 = do
   callEndpoint @"start"
     h2
     StartParams
-      { spDeadline = slotToEndPOSIXTime def 10,
-        spMinBid = 0,
+      { spMinBid = 0,
         spCurrency = currency,
         spToken = token
-      }
-
-  void $ Emulator.waitNSlots 3
-
-  callEndpoint @"bid"
-    h1
-    BidParams
-      { bpCurrency = currency,
-        bpToken = token,
-        bpBid = myBid31,
-        bpSeller = mockWalletPaymentPubKeyHash w2
-      }
-
-  void $ Emulator.waitNSlots 3
-
-  callEndpoint @"bid"
-    h3
-    BidParams
-      { bpCurrency = currency,
-        bpToken = token,
-        bpBid = myBid32,
-        bpSeller = mockWalletPaymentPubKeyHash w2
       }
 
   void $ Emulator.waitNSlots 3
@@ -322,10 +284,11 @@ myTrace3 = do
         cpSeller = mockWalletPaymentPubKeyHash w2
       }
 
-  void $ Emulator.waitNSlots 3
+  void $ Emulator.waitNSlots 1
 
   Extras.logInfo $ show "### WALLET 1: " <> show (mockWalletPaymentPubKeyHash w1)
   Extras.logInfo $ show "### WALLET 2: " <> show (mockWalletPaymentPubKeyHash w2)
+  Extras.logInfo $ show "### START TIME: " <> show (slotToBeginPOSIXTime def 0)
 
 checkPredicateOptionsCoverage ::
   CheckOptions ->
