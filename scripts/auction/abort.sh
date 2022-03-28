@@ -22,22 +22,22 @@ ADA_TO_WALLET="$((SCRIPT_FUNDS - FEE)) lovelace"
 cardano-cli transaction build \
 	--alonzo-era \
 	--testnet-magic 1097911063 \
-	--change-address "$(cat ./wallets/w1/payment.addr)" \
+	--change-address "$(cat ./scripts/wallets/w1/payment.addr)" \
     --tx-in $WALLET_UTXO \
     --tx-in $SCRIPT_UTXO \
     --tx-in-script-file ./scripts/auction/validators/auction.plutus \
     --tx-in-datum-file $DATUM_FILE \
     --tx-in-redeemer-file ./scripts/auction/data/abort-redeemer.json \
     --tx-in-collateral $WALLET_UTXO \
-	--tx-out "$(cat ./wallets/w1/payment.addr) $ADA_TO_WALLET + $TOKEN_TO_WALLET" \
-    --required-signer-hash "$(cat ./wallets/w1/pubkeyhash.addr)" \
+	--tx-out "$(cat ./scripts/wallets/w1/payment.addr) $ADA_TO_WALLET + $TOKEN_TO_WALLET" \
+    --required-signer-hash "$(cat ./scripts/wallets/w1/pubkeyhash.addr)" \
     --protocol-params-file ./scripts/data/protocol.json \
 	--out-file ./scripts/output/tx.body
 
 cardano-cli transaction sign \
 	--testnet-magic 1097911063 \
 	--tx-body-file ./scripts/output/tx.body \
-	--signing-key-file ./wallets/w1/payment.skey \
+	--signing-key-file ./scripts/wallets/w1/payment.skey \
 	--out-file ./scripts/output/tx.signed
 
 cardano-cli transaction submit \

@@ -1,4 +1,5 @@
 #!/bin/bash
+# USAGE: This takes the source of a wallet in the format created by `create-wallet.sh`
 
 walletSrc=$1
 

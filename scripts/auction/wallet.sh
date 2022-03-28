@@ -11,4 +11,4 @@ cardano-cli address build \
 
 # Generate pubkeyhash from payment.addr
 cardano-cli address key-hash \
-    --payment-verification-key "$(cat ./wallets/w1/payment.vkey)"
+    --payment-verification-key "$(cat ./scripts/wallets/w1/payment.vkey)"

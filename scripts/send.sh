@@ -14,14 +14,14 @@ MOOSE="$POLICY_ID.$MOOSE_TOKEN"
 cardano-cli transaction build \
 	--alonzo-era \
 	--testnet-magic 1097911063 \
-	--change-address $(cat ./wallets/w2/payment.addr) \
+	--change-address $(cat ./scripts/wallets/w2/payment.addr) \
 	--tx-in $IN_UTXO \
-	--tx-out "$(cat ./wallets/w1/payment.addr) $MIN_ADA + $TUI_SEND $TUI + $MOOSE_SEND $MOOSE" \
+	--tx-out "$(cat ./scripts/wallets/w1/payment.addr) $MIN_ADA + $TUI_SEND $TUI + $MOOSE_SEND $MOOSE" \
 	--out-file ./scripts/output/tx.body
 
 cardano-cli transaction sign \
 	--tx-body-file ./scripts/output/tx.body \
-	--signing-key-file ./wallets/w2/payment.skey \
+	--signing-key-file ./scripts/wallets/w2/payment.skey \
 	--testnet-magic 1097911063 \
 	--out-file ./scripts/output/tx.signed
 

@@ -17,7 +17,7 @@ ADA_TO_SCRIPT="$((MIN_ADA + BID)) lovelace"
 cardano-cli transaction build \
 	--alonzo-era \
 	--testnet-magic 1097911063 \
-	--change-address "$(cat ./wallets/w2/payment.addr)" \
+	--change-address "$(cat ./scripts/wallets/w2/payment.addr)" \
     --tx-in $COLLATERAL_UTXO \
     --tx-in $SCRIPT_UTXO \
     --tx-in-script-file ./scripts/auction/validators/auction.plutus \
@@ -26,14 +26,14 @@ cardano-cli transaction build \
     --tx-in-collateral $COLLATERAL_UTXO \
 	--tx-out "$(cat ./scripts/auction/validators/auction.addr) $ADA_TO_SCRIPT + $TOKEN_TO_SCRIPT" \
     --tx-out-datum-embed-file ./scripts/auction/data/bid-w2-datum.json \
-    --required-signer-hash "$(cat ./wallets/w2/pubkeyhash.addr)" \
+    --required-signer-hash "$(cat ./scripts/wallets/w2/pubkeyhash.addr)" \
     --protocol-params-file ./scripts/data/protocol.json \
 	--out-file ./scripts/output/tx.body
 
 cardano-cli transaction sign \
 	--testnet-magic 1097911063 \
 	--tx-body-file ./scripts/output/tx.body \
-	--signing-key-file ./wallets/w2/payment.skey \
+	--signing-key-file ./scripts/wallets/w2/payment.skey \
 	--out-file ./scripts/output/tx.signed
 
 cardano-cli transaction submit \

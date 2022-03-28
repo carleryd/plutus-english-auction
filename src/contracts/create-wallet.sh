@@ -1,4 +1,5 @@
 #!/bin/bash
+# USAGE: Pass 3 arguments to create a wallet which can then be used with `load-wallet.sh`
 
 name=$1
 passphrase=$2

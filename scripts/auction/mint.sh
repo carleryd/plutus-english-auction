@@ -2,7 +2,7 @@
 TUI_TOKEN="545549"
 MOOSE_TOKEN="4d4f4f5345"
 TOKEN_AMOUNT="100"
-ADDRESS="$(cat ./wallets/w1/payment.addr)"
+ADDRESS="$(cat ./scripts/wallets/w1/payment.addr)"
 WALLET_UTXO="03c9e85de45da4f6f73438d3e29a4e748e1021a22e4a3b8d7881b13b31332e5c#0"
 POLICY_ID=$(cat ./scripts/auction/tokens/policy/policyID)
 
@@ -32,7 +32,7 @@ cardano-cli transaction build-raw \
 
 echo "\n\n### Signing matx.raw with wallet 1 and policy ###"
 cardano-cli transaction sign  \
-	--signing-key-file ./wallets/w1/payment.skey  \
+	--signing-key-file ./scripts/wallets/w1/payment.skey  \
 	--signing-key-file ./scripts/auction/tokens/policy/policy.skey  \
 	--testnet-magic 1097911063 \
 	--tx-body-file ./scripts/auction/tokens/matx.raw \

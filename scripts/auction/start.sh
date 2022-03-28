@@ -20,17 +20,17 @@ TOKEN_TO_SCRIPT="$TUI_SEND $POLICY_ID.$TUI_TOKEN + $MOOSE_SEND $POLICY_ID.$MOOSE
 cardano-cli transaction build \
 	--alonzo-era \
 	--testnet-magic 1097911063 \
-	--change-address "$(cat ./wallets/w1/payment.addr)" \
+	--change-address "$(cat ./scripts/wallets/w1/payment.addr)" \
 	--tx-in $ADA_UTXO \
 	--tx-in $TUI_UTXO \
-	--tx-out "$(cat ./wallets/w1/payment.addr) $MIN_ADA + $TOKEN_TO_SENDER" \
+	--tx-out "$(cat ./scripts/wallets/w1/payment.addr) $MIN_ADA + $TOKEN_TO_SENDER" \
 	--tx-out "$(cat ./scripts/auction/validators/auction.addr) $MIN_ADA + $TOKEN_TO_SCRIPT" \
 	--tx-out-datum-hash-file ./scripts/auction/data/start-datum.json \
 	--out-file ./scripts/output/tx.body
 
 cardano-cli transaction sign \
 	--tx-body-file ./scripts/output/tx.body \
-	--signing-key-file ./wallets/w1/payment.skey \
+	--signing-key-file ./scripts/wallets/w1/payment.skey \
 	--testnet-magic 1097911063 \
 	--out-file ./scripts/output/tx.signed
 
