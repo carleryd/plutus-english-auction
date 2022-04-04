@@ -16,6 +16,10 @@ import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
+import Web.HTML (window)
+import Web.HTML.Window (document)
+import Web.HTML.HTMLDocument (toDocument)
+import Cardano.Wallet.Nami as Nami
 
 main :: Effect Unit
 main =
@@ -29,6 +33,7 @@ type State
 data Action
   = Initialize
   | FetchBalances
+  | GetNamiBalance
 
 component :: forall query input output m. MonadAff m => H.Component query input output m
 component =
@@ -66,6 +71,9 @@ render state = do
     , HH.button
         [ HE.onClick \_ -> FetchBalances ]
         [ HH.text "Refresh balances" ]
+    , HH.button
+        [ HE.onClick \_ -> GetNamiBalance ]
+        [ HH.text "Nami" ]
     ]
 
 type WalletBalances
@@ -105,3 +113,7 @@ handleAction = case _ of
       Left err -> log $ "GET /balances response failed to decode: " <> AX.printError err
       Right response -> do
         H.put $ fromRight Nothing (Just <$> jsonToWb response.body)
+  GetNamiBalance -> do
+    -- w <- H.liftEffect $ document <$> window
+    -- let x = 5
+    log ("HELLO" <> show Nami.isEnabled)

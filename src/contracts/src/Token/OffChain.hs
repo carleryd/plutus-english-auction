@@ -85,7 +85,7 @@ mintToken tp = do
       Contract.logDebug @String $ printf "caller unspent output %s" (show oref)
       utxos <- utxosAt addr
       Contract.logDebug @String $ printf "caller UTXOs %s" (show utxos)
-      o <- fromJust <$> Contract.unspentTxOutFromRef oref
+      o <- fromJust <$> Contract.txOutFromRef oref
       Contract.logDebug @String $ printf "picked UTxO at %s with value %s" (show oref) (show $ _ciTxOutValue o)
 
       let tn = tpToken tp

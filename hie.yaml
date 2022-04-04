@@ -1,4 +1,25 @@
 cradle:
   cabal:
-    - path: "contracts/src"
+    - path: "src/backend/src"
+      component: "lib:backend"
+
+    - path: "src/backend/src/Main.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/backend/src/Lib.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/contracts/src"
       component: "lib:contracts"
+
+    - path: "src/contracts/app/token-pab.hs"
+      component: "contracts:exe:token-pab"
+
+    - path: "src/contracts/app/monitor.hs"
+      component: "contracts:exe:monitor"
+
+    - path: "src/contracts/app/mint-token.hs"
+      component: "contracts:exe:mint-token"
+
+    - path: "src/contracts/test"
+      component: "contracts:test:contracts-tests"

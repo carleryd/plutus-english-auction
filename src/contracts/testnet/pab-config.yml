@@ -14,11 +14,11 @@ pabWebserverConfig:
 walletServerConfig:
   tag: LocalWalletConfig
   walletSettings:
-    baseUrl: http://localhost:8090
+    baseUrl: http://192.168.1.103:8090
 
 nodeServerConfig:
-  pscSocketPath: $CARDANO_NODE_SOCKET_PATH
-  pscBaseUrl: "localhost"
+  pscSocketPath: testnet/node.sock
+  pscBaseUrl: "192.168.1.103"
   pscKeptBlocks: 2160
   pscNetworkId: "1097911063" # Testnet network ID (main net = empty string)
   pscSlotConfig:
@@ -32,7 +32,7 @@ nodeServerConfig:
   pscNodeMode: AlonzoNode
 
 chainIndexConfig:
-  ciBaseUrl: http://localhost:9083
+  ciBaseUrl: http://192.168.1.103:9083
   ciWatchedAddresses: []
 
 requestProcessingConfig:
@@ -46,6 +46,6 @@ developmentOptions:
   pabResumeFrom:
     # "tag" : "PointAtGenesis" }
       { "tag" : "Point"
-      , "pointBlockId" : "14fe1646a56f61677e6050ef1eff0a1611f3e738927fe8b8119ad5bd3756dde9"
-      , "pointSlot" : {"getSlot" : 52639275}
+      , "pointBlockId" : "bfccfc13664a5c48692349a3807b4fb86eb6d22fc10759233c9f00efd31b941c"
+      , "pointSlot" : {"getSlot" : 54361032}
       }

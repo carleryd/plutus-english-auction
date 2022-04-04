@@ -2,6 +2,4 @@ dist-newstyle
 *\~
 *.local
 .DS_Store
-\.spago
-\.psci_modules
 frontend/output

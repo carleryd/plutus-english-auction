@@ -1,0 +1,49 @@
+{
+  "name": "my-webpack-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Christofer Ärleryd",
+  "license": "MIT",
+  "scripts": {
+    "build:spago": "spago build",
+    "build:spago:watch": "spago build --purs-args \"--watch --clear-screen",
+    "build:webpack": "webpack",
+    "install:spago": "spago install",
+    "repl": "spago repl",
+    "start": "npm install && npm run install:spago && npm run build:spago && npm run build:webpack",
+    "watch": "webpack --watch"
+  },
+  "dependencies": {
+    "@cardano-foundation/ledgerjs-hw-app-cardano": "^4.0.0",
+    "@dcspark/milkomeda-constants": "^0.4.0",
+    "@dicebear/avatars": "^4.10.1",
+    "@dicebear/avatars-bottts-sprites": "^4.10.1",
+    "@emurgo/cardano-serialization-lib-browser": "^9.1.2",
+    "@emurgo/cip14-js": "^3.0.1",
+    "@ledgerhq/hw-transport-webusb": "^6.11.2",
+    "big-integer": "^1.6.50",
+    "bignumber": "^1.1.0",
+    "bip39": "^3.0.4",
+    "blake2b": "^2.1.4",
+    "buffer": "^6.0.3",
+    "crypto-random-string": "^4.0.0",
+    "json-bigint": "^1.0.0",
+    "secrets": "^1.1.5",
+    "web3-utils": "^1.6.1",
+    "xhr2": "^0.2.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.17.8",
+    "@babel/plugin-transform-runtime": "^7.16.4",
+    "@babel/preset-env": "^7.16.11",
+    "@webpack-cli/generators": "^2.4.2",
+    "babel-loader": "^8.2.4",
+    "html-webpack-plugin": "^5.5.0",
+    "node-polyfill-webpack-plugin": "^1.1.4",
+    "prettier": "^2.6.2",
+    "webpack": "^5.71.0",
+    "webpack-cli": "^4.9.2",
+    "whatwg-fetch": "^3.6.2"
+  },
+  "description": "My webpack project"
+}

@@ -97,10 +97,10 @@ writeUnit :: IO ()
 writeUnit = writeJSON "testnet/unit.json" ()
 
 contractActivationArgs :: WalletId -> a -> ContractActivationArgs a
-contractActivationArgs wid a =
+contractActivationArgs _wid a =
   ContractActivationArgs
     { caID = a,
-      caWallet = Just $ Wallet {getWalletId = wid}
+      caWallet = Just $ Wallet {getWalletId = _wid}
     }
 
 getCredentials :: Plutus.Address -> Maybe (Plutus.PaymentPubKeyHash, Maybe Plutus.StakePubKeyHash)

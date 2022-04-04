@@ -5,7 +5,7 @@ module Endpoints
   )
 where
 
-import Blockfrost.Types.Cardano.Addresses (AddressUTXO)
+-- import Blockfrost.Types.Cardano.Addresses (AddressUTXO)
 import Data.Aeson (ToJSON (..))
 import qualified Lib
 import Web.Scotty
@@ -15,13 +15,13 @@ homeEndpoint = do
   setHeader "Content-Type" "text/html"
   file "./src/assets/index.html"
 
-myData :: String
-myData = "hello from backend!"
-
 baseEndpoints :: ScottyM ()
 baseEndpoints = do
   get "/" homeEndpoint
   get "/assets/index.js" $ file "./src/assets/index.js"
+  get "/assets/frontend-dist/:file" $ do
+    v <- param "file"
+    file ("./src/assets/frontend-dist/" <> v)
 
 -- balancesEndpoint :: Lib.WalletBalances -> ScottyM ()
 -- balancesEndpoint wb = do
@@ -33,6 +33,6 @@ balancesEndpoint wb = do
 
 startServer :: IO ()
 startServer = do
-  wb <- Lib.getUtxos
+  wb <- Lib.getBlockfrostUtxos
 
   scotty 3000 (baseEndpoints <> balancesEndpoint wb)
