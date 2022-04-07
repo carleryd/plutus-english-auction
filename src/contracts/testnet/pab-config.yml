@@ -12,9 +12,9 @@ pabWebserverConfig:
   endpointTimeout: 5
 
 walletServerConfig:
-  tag: LocalWalletConfig
-  walletSettings:
-    baseUrl: http://192.168.1.103:8090
+  tag: RemoteWalletConfig
+  # walletSettings:
+  #   baseUrl: http://192.168.1.103:8090
 
 nodeServerConfig:
   pscSocketPath: testnet/node.sock
@@ -38,14 +38,14 @@ chainIndexConfig:
 requestProcessingConfig:
   requestProcessingInterval: 1
 
-metadataServerConfig:
-  mdBaseUrl: http://localhost:9085
+# metadataServerConfig:
+#   mdBaseUrl: http://localhost:9085
 
 developmentOptions:
   pabRollbackHistory: 1
   pabResumeFrom:
     # "tag" : "PointAtGenesis" }
       { "tag" : "Point"
-      , "pointBlockId" : "bfccfc13664a5c48692349a3807b4fb86eb6d22fc10759233c9f00efd31b941c"
-      , "pointSlot" : {"getSlot" : 54361032}
+      , "pointBlockId" : "acec3a821fcc52c410526d091e2484618c5d9a43267c4f73ad2ee903793b4ee5"
+      , "pointSlot" : {"getSlot" : 54951416}
       }

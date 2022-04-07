@@ -100,7 +100,7 @@ contractActivationArgs :: WalletId -> a -> ContractActivationArgs a
 contractActivationArgs _wid a =
   ContractActivationArgs
     { caID = a,
-      caWallet = Just $ Wallet {getWalletId = _wid}
+      caWallet = Just $ Wallet {getWalletId = _wid, prettyWalletName = Just "pretty-wallet-name"}
     }
 
 getCredentials :: Plutus.Address -> Maybe (Plutus.PaymentPubKeyHash, Maybe Plutus.StakePubKeyHash)

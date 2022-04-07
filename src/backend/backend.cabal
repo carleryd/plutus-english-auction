@@ -45,6 +45,7 @@ library
                      , req ^>= 3.9.0
                      , cborg
                      , cborg-json
+                     , wai-cors
   default-language:    Haskell2010
   ghc-options:         -Wall
 
@@ -65,5 +66,6 @@ executable backend
                      , contracts
                      , plutus-pab
                      , plutus-contract
+                     , wai-cors
     hs-source-dirs:    src
     default-language:  Haskell2010

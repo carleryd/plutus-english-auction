@@ -17,8 +17,14 @@ import Wallet.Types (ContractInstanceId (..))
 address :: Address
 address = unsafeReadAddress "addr_test1qrrswgu70f8wuhdqnk7tk52dla2c7peuukvlvmu0e338m4w5qqhj89csyv7y7543l24hz8t00rrgyct2p5gv3udgtpxqprzavs"
 
+namiAddress :: Address
+namiAddress = unsafeReadAddress "addr_test1qz5gr43kn7nnzdmastvqdkx7kgr8s7qjnf0zm7tvyhj6prjr4fq3q7yn6tgmx08xxq390qyu7asdf2qlngrhghts8uysdfed6a"
+
 wid :: WalletId
 wid = unsafeReadWalletId "8c8c14997236e9372520d26666fb581e9b639ccb"
+
+namiWid :: WalletId
+namiWid = unsafeReadWalletId "3345524abf6bbe1809449224b5972c41790b6cf2"
 
 main :: IO ()
 main = do
@@ -49,6 +55,23 @@ mintStatic = do
 
   printf "minting token for wallet id %s with parameters %s\n" (show wid) $ show tp
   cid <- mintToken wid tp
+  printf "minted tokens, contract instance id: %s\n" $ show cid
+
+mintNami :: IO ()
+mintNami = do
+  let amt' = "7"
+      tn' = "NAMI-7"
+      wid' = namiWid
+      addr' = namiAddress
+      tp =
+        TokenParams
+          { tpToken = fromString tn',
+            tpAmount = read amt',
+            tpAddress = addr'
+          }
+
+  printf "minting token for wallet id %s with parameters %s\n" (show namiWid) $ show tp
+  cid <- mintToken namiWid tp
   printf "minted tokens, contract instance id: %s\n" $ show cid
 
 mintToken :: WalletId -> TokenParams -> IO ContractInstanceId

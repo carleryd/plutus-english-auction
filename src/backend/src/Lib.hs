@@ -16,7 +16,7 @@ import Blockfrost.Client
     runBlockfrost,
   )
 import Blockfrost.Lens hiding (port)
-import Blockfrost.Types.Cardano.Addresses (AddressUTXO)
+import Blockfrost.Types.Cardano.Addresses (AddressUtxo)
 import Control.Exception (throwIO)
 import qualified Control.Lens as Lens
 import Control.Monad (when)
@@ -45,7 +45,7 @@ w2Address =
     Data.Text.pack
       "addr_test1qp2ay4yk83x2hyv63y794klajtj08w2kawk2vyc4adpu5urd8fkz57x5aymr2xvfqqg4drzw384cx0jnqmt6d4vdwfeq934a74"
 
-printAddressUtxos :: [AddressUTXO] -> [IO ()]
+printAddressUtxos :: [AddressUtxo] -> [IO ()]
 printAddressUtxos utxos =
   printedAmounts
   where
@@ -58,8 +58,8 @@ printAddressUtxos utxos =
     printedAmounts = (\amounts -> print "Utxo: " <> mconcat (printAmount <$> amounts)) <$> xss
 
 data WalletBalances = WalletBalances
-  { w1 :: [AddressUTXO],
-    w2 :: [AddressUTXO]
+  { w1 :: [AddressUtxo],
+    w2 :: [AddressUtxo]
   }
   deriving (Show, Generic)
 
