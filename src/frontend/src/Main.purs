@@ -113,7 +113,7 @@ handleAction = case _ of
     -- w <- H.liftEffect $ document <$> window
     -- let x = 5
     log ("HELLO 2" <> show Nami.isEnabled)
-    let cid = "cf568050-7853-40f7-bcc1-f2df4415e64a"
+    let cid = "78ab3f54-b7d4-4245-9d84-44df79dca577"
     partialCborTx <- H.liftAff $ fetchContractPartialTx cid
     makePaymentRes <-
       H.lift

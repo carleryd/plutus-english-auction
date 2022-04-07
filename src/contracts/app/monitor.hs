@@ -22,15 +22,15 @@ import Utils (cidToString, contractActivationArgs, unsafeReadAddress, unsafeRead
 import Wallet.Emulator.Wallet (WalletId (..))
 import Wallet.Types (ContractInstanceId (..))
 
-address :: Address
-address = unsafeReadAddress "addr_test1qrrswgu70f8wuhdqnk7tk52dla2c7peuukvlvmu0e338m4w5qqhj89csyv7y7543l24hz8t00rrgyct2p5gv3udgtpxqprzavs"
+wallet1Address :: Address
+wallet1Address = unsafeReadAddress "addr_test1qplfk3cw70jwlq7gya2m0mrx6fxujrf6gm9v9c556j75v5k5qqhj89csyv7y7543l24hz8t00rrgyct2p5gv3udgtpxqy637fp"
 
-wid :: WalletId
-wid = unsafeReadWalletId "8c8c14997236e9372520d26666fb581e9b639ccb"
+walletId :: WalletId
+walletId = unsafeReadWalletId "8c8c14997236e9372520d26666fb581e9b639ccb"
 
 getState :: IO (ContractInstanceClientState TokenContracts)
 getState = do
-  instanceId <- startMonitor wid address
+  instanceId <- startMonitor walletId wallet1Address
   getMonitorState instanceId
 
 getValue :: IO (Maybe Value)
@@ -46,12 +46,12 @@ main = do
   printf "started monitor-process with contract id %s\n\n" $ cidToString cid
   go cid mempty
   where
-    go :: ContractInstanceId -> Value -> IO ()
+    go :: ContractInstanceId -> Value -> IO a
     go cid v = do
       cic <- getMonitorState cid
       let v' = fromMaybe v $ observedValue cic
-      -- when (v' /= v) $
-      printf "%s\n\n" $ show $ flattenValue v'
+      when (v' /= v) $
+        printf "%s\n\n" $ show $ flattenValue v'
       threadDelay 1_000_000
       go cid v'
 

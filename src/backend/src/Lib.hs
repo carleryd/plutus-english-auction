@@ -8,19 +8,26 @@ import Blockfrost.Client
   ( Address (Address),
     Amount,
     Block,
+    BlockHash,
     BlockfrostError (..),
+    Transaction,
     getAddressDetails,
     getAddressUtxos,
+    getBlock,
     getLatestBlock,
+    getTx,
     projectFromFile,
     runBlockfrost,
   )
 import Blockfrost.Lens hiding (port)
 import Blockfrost.Types.Cardano.Addresses (AddressUtxo)
+import Blockfrost.Types.Cardano.Blocks
+import Blockfrost.Types.Cardano.Transactions
 import Control.Exception (throwIO)
 import qualified Control.Lens as Lens
-import Control.Monad (when)
+import Control.Monad (join, when)
 import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Bifunctor (first)
 import Data.Text (pack, unpack)
 import qualified Data.Text
 import GHC.Generics
@@ -31,7 +38,6 @@ import Plutus.PAB.Webserver.Types (ContractInstanceClientState (..))
 import qualified System.Directory
 import Text.Printf (printf)
 import Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
-import Wallet.Emulator.Wallet (WalletId (..))
 
 w1Address :: Address
 w1Address =
@@ -113,6 +119,23 @@ getWalletInfo _wid = do
       x = responseBody v
 
   return "HELLO"
+
+getBlockConfirmations :: IO (Either BlockfrostError Integer)
+getBlockConfirmations = do
+  currentDir <- System.Directory.getCurrentDirectory
+  testnet <- projectFromFile (currentDir <> "/.blockfrost-testnet-token")
+
+  transactionRes <-
+    runBlockfrost testnet $
+      getTx "ba00ba85e9c39ebaa09115866806e2f837437c758d3faf589a12a8da13d0f2ed"
+
+  let blockHashE = _transactionBlock <$> transactionRes
+
+  blockE <- runBlockfrost testnet (getBlock $ first (const 0) blockHashE)
+
+  let confirmationsE = _blockConfirmations <$> blockE
+
+  return confirmationsE
 
 getBlockfrostUtxos :: IO WalletBalances
 getBlockfrostUtxos = do

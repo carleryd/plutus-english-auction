@@ -9,7 +9,8 @@ import Data.ByteString
 import Data.String (IsString (..))
 import Ledger (PaymentPubKeyHash (..), StakePubKeyHash (..))
 import Ledger.Ada (lovelaceValueOf)
-import Ledger.Address (Address)
+import Ledger.Address (Address, addressCredential)
+import Ledger.Credential (Credential (..))
 import Network.HTTP.Req
 import PAB (TokenContracts (..))
 import SendContract (SendParams (..))
@@ -19,28 +20,37 @@ import Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
 import Wallet.Emulator.Wallet (WalletId (..))
 import Wallet.Types (ContractInstanceId (..))
 
-namiAddress :: Address
-namiAddress = unsafeReadAddress "addr_test1qz5gr43kn7nnzdmastvqdkx7kgr8s7qjnf0zm7tvyhj6prjr4fq3q7yn6tgmx08xxq390qyu7asdf2qlngrhghts8uysdfed6a"
+wallet1Address :: Address
+wallet1Address = unsafeReadAddress "addr_test1qplfk3cw70jwlq7gya2m0mrx6fxujrf6gm9v9c556j75v5k5qqhj89csyv7y7543l24hz8t00rrgyct2p5gv3udgtpxqy637fp"
 
 wid :: WalletId
 wid = unsafeReadWalletId "8c8c14997236e9372520d26666fb581e9b639ccb"
 
-wallet1Pkh :: Ledger.PaymentPubKeyHash
-wallet1Pkh =
-  PaymentPubKeyHash
-    "fd5309253a86281ffbfee20e7c63b4b7d83bdcee309ba810d96639c4"
+wallet1Pkh :: IO [Ledger.PaymentPubKeyHash]
+wallet1Pkh = case (addressCredential wallet1Address) of
+  PubKeyCredential pkh -> ioReturn [PaymentPubKeyHash pkh]
+  _ -> ioReturn []
+
+-- wallet1Pkh :: Ledger.PaymentPubKeyHash
+-- wallet1Pkh =
+--   PaymentPubKeyHash
+--     "fd5309253a86281ffbfee20e7c63b4b7d83bdcee309ba810d96639c4"
 
 namiWid :: WalletId
 namiWid = unsafeReadWalletId "3345524abf6bbe1809449224b5972c41790b6cf2"
 
+ioReturn :: a -> IO a
+ioReturn = return
+
 main :: IO ()
 main = do
   [wid', amt'] <- getArgs
+  [pkh'] <- wallet1Pkh
   let wid = unsafeReadWalletId wid'
       tp =
         SendParams
           { amount = (read amt'),
-            pkh = wallet1Pkh
+            pkh = pkh'
           }
   printf "minting token for wallet id %s with parameters %s\n" (show wid) $ show tp
   cid <- sendAda wid tp
@@ -48,12 +58,13 @@ main = do
 
 sendToWallet1 :: IO ()
 sendToWallet1 = do
+  [pkh'] <- wallet1Pkh
   let sp =
         SendParams
           { amount = 5_000_000,
-            pkh = wallet1Pkh
+            pkh = pkh'
           }
-  -- printf "Sending ada from Nami wallet" (show wid) $ show sp
+  printf "Sending ada to wallet %s\n" $ show sp
   cid <- sendAda wid sp
   printf "Sent ada, contract instance id: %s\n" $ show cid
 
