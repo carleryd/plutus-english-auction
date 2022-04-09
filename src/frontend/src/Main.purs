@@ -80,7 +80,7 @@ render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
   HH.div_
     [ HH.h1_
-        [ HH.text "Balances" ]
+        [ HH.text "Royal Mint" ]
     , HH.input
         [ HP.value state.tokenName
         , HE.onValueInput SetTokenName
@@ -101,14 +101,6 @@ renderWallet :: forall w i. A.Json -> HH.HTML w i
 renderWallet wallet = do
   HH.p_ [ HH.text $ A.stringify wallet ]
 
--- handleAction
---   :: forall msg m
---    . MonadAsk Env m
---   => MonadAff m
---   => MonadThrow Error m
---   => MonadError Error m
---   => Action
---   -> H.HalogenM State Action () msg m Unit
 handleAction ::
   forall output m
    . MonadAsk Env m
@@ -138,8 +130,6 @@ handleAction = case _ of
         H.liftAff $ postPendingTx (show txId) tokenName
   SetTokenName tn -> do
     H.modify_ (_ { tokenName = tn })
-
-
 
 newtype PendingTxData =
   PendingTxData { txHash :: String }
@@ -175,7 +165,6 @@ fetchContractPartialTx cid = do
                 , responseFormat = ResponseFormat.json
                 }
         )
-      -- $ AX.get ResponseFormat.json ("/api/contract/instance/" <> cid <> "/status")
   res <- either (throwError <<< error <<< AX.printError) pure resE
   let
     partialTxCborM =
