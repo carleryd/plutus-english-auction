@@ -12,7 +12,7 @@
     "repl": "spago repl",
     "start": "npm install && npm run install:spago && npm run build:spago && npm run build:webpack",
     "watch": "webpack --watch",
-    "proxy": "lcp --proxyUrl http://localhost:9080"
+    "proxy": "lcp --proxyUrl http://localhost:9081"
   },
   "dependencies": {
     "@cardano-foundation/ledgerjs-hw-app-cardano": "^4.0.0",

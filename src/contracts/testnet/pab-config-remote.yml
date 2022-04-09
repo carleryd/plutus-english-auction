@@ -1,9 +1,9 @@
 dbConfig:
-    dbConfigFile: testnet/plutus-pab.db
+    dbConfigFile: testnet/plutus-pab-remote.db
     dbConfigPoolSize: 20
 
 pabWebserverConfig:
-  baseUrl: http://localhost:9080
+  baseUrl: http://localhost:9081
   staticDir: plutus-pab-client/dist
   permissiveCorsPolicy: False
   # Optional timeout (in seconds) for calls to endpoints that are not currently
@@ -12,10 +12,10 @@ pabWebserverConfig:
   endpointTimeout: 5
 
 walletServerConfig:
-  tag: LocalWalletConfig
-  # tag: RemoteWalletConfig
-  walletSettings:
-    baseUrl: http://192.168.1.103:8090
+  # tag: LocalWalletConfig
+  tag: RemoteWalletConfig
+  # walletSettings:
+  #   baseUrl: http://192.168.1.103:8090
 
 nodeServerConfig:
   pscSocketPath: testnet/node.sock

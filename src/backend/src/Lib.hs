@@ -23,6 +23,7 @@ import Blockfrost.Lens hiding (port)
 import Blockfrost.Types.Cardano.Addresses (AddressUtxo)
 import Blockfrost.Types.Cardano.Blocks
 import Blockfrost.Types.Cardano.Transactions
+import Blockfrost.Types.Shared
 import Control.Exception (throwIO)
 import qualified Control.Lens as Lens
 import Control.Monad (join, when)
@@ -120,14 +121,14 @@ getWalletInfo _wid = do
 
   return "HELLO"
 
-getBlockConfirmations :: IO (Either BlockfrostError Integer)
-getBlockConfirmations = do
+getBlockConfirmations :: TxHash -> IO (Either BlockfrostError Integer)
+getBlockConfirmations txId = do
   currentDir <- System.Directory.getCurrentDirectory
   testnet <- projectFromFile (currentDir <> "/.blockfrost-testnet-token")
 
   transactionRes <-
     runBlockfrost testnet $
-      getTx "ba00ba85e9c39ebaa09115866806e2f837437c758d3faf589a12a8da13d0f2ed"
+      getTx txId
 
   let blockHashE = _transactionBlock <$> transactionRes
 

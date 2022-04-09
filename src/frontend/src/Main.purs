@@ -1,26 +1,28 @@
 module Main where
 
-import AppM (AppM, Env, runAppM)
-import Prelude
+import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<<<), (<>), (=<<), (>>=))
+
 import Affjax as AX
+import Affjax.RequestBody as RequestBody
 import Affjax.ResponseFormat as ResponseFormat
+import AppM (AppM, Env, runAppM)
 import Cardano.Wallet.Nami as Nami
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, try)
 import Control.Monad.Reader (class MonadAsk)
+import Data.Argonaut.Core as A
+import Data.Argonaut.Decode (JsonDecodeError, decodeJson)
 import Data.Array (head)
+import Data.ArrayBuffer.Typed as ArrayBuffer
+import Data.ArrayBuffer.Types (Uint8Array)
 import Data.Cardano (CardanoWasm, loadCardanoWasm)
 import Data.Cardano.Transaction as Transaction
 import Data.Cardano.TransactionWitnessSet as TransactionWitnessSet
-import Data.ArrayBuffer.Types (Uint8Array)
-import Data.ArrayBuffer.Typed as ArrayBuffer
-import Data.Argonaut.Core as A
-import Data.Argonaut.Decode (JsonDecodeError, decodeJson)
-import Data.Either (either, Either(..) )
+import Data.Either (either, Either(..))
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
+import Effect.Aff (Aff, attempt, throwError)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Aff (attempt, throwError)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
@@ -30,6 +32,7 @@ import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
+import Halogen.HTML.Properties as HP
 import Node.Buffer (Buffer)
 import Node.Buffer as Buffer
 import Node.Encoding as Encoding
@@ -45,11 +48,14 @@ main =
     pure unit
 
 type State
-  = { cardanoWasm :: CardanoWasm }
+  = { cardanoWasm :: CardanoWasm
+    , tokenName :: String
+    }
 
 data Action
   = Initialize
-  | GetNamiBalance
+  | GetNamiBalance String
+  | SetTokenName String
 
 component :: forall query input output. CardanoWasm -> H.Component query input output AppM
 component cardanoWasm = do
@@ -66,16 +72,22 @@ component cardanoWasm = do
 
 initialState :: CardanoWasm -> State
 initialState cardanoWasm = do
-  { cardanoWasm }
+  { cardanoWasm
+  , tokenName: ""
+  }
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render _ = do
+render state = do
   HH.div_
     [ HH.h1_
         [ HH.text "Balances" ]
+    , HH.input
+        [ HP.value state.tokenName
+        , HE.onValueInput SetTokenName
+        ]
     , HH.button
-        [ HE.onClick \_ -> GetNamiBalance ]
-        [ HH.text "Nami" ]
+        [ HE.onClick \_ -> GetNamiBalance state.tokenName ]
+        [ HH.text "Mint NFT for 5 ada" ]
     ]
 
 type WalletBalances
@@ -105,15 +117,13 @@ handleAction ::
   => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   Initialize -> do
-    -- handleAction Regenerate
-    -- balances <- H.get
     log
       ( "Balances: DEPRECATED")
-  GetNamiBalance -> do
-    -- w <- H.liftEffect $ document <$> window
-    -- let x = 5
-    log ("HELLO 2" <> show Nami.isEnabled)
-    let cid = "78ab3f54-b7d4-4245-9d84-44df79dca577"
+  GetNamiBalance tokenName -> do
+    log ("Name.isEnabled: " <> show Nami.isEnabled)
+    log ("Minting token: " <> tokenName)
+
+    let cid = "068571ad-aaf3-4acf-979e-60ebd85129e8"
     partialCborTx <- H.liftAff $ fetchContractPartialTx cid
     makePaymentRes <-
       H.lift
@@ -125,11 +135,28 @@ handleAction = case _ of
         log $ show err
       Right txId -> do
         log ("Submit success with txId " <> show txId)
-    -- log ("cicYieldedExportTxs in CBOR format" <> partialCborTx)
-    -- walletIdE <- H.liftAff $ try Nami.getWalletId
-    -- case walletIdE of
-    --   Left err -> log ("Error: " <> show err)
-    --   Right walletId -> log ("Wallet id: " <> show walletId)
+        H.liftAff $ postPendingTx (show txId) tokenName
+  SetTokenName tn -> do
+    H.modify_ (_ { tokenName = tn })
+
+
+
+newtype PendingTxData =
+  PendingTxData { txHash :: String }
+
+postPendingTx :: String -> String -> Aff Unit
+postPendingTx txHash tokenName = do
+  log ("postPendingTx: " <> txHash)
+  let payload = FO.empty
+                # FO.insert "txHash" (A.fromString txHash)
+                # FO.insert "tokenName" (A.fromString tokenName)
+
+  resE <- AX.post ResponseFormat.json "/pending-tx"
+          (Just (RequestBody.json (A.fromObject payload)))
+
+  _ <- either (throwError <<< error <<< AX.printError) pure resE
+
+  log ("Posted pending tx" <> show txHash)
 
 -- | Fetch the partial transaction from the PAB.
 fetchContractPartialTx

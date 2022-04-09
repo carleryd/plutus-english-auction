@@ -68,6 +68,9 @@ sendToWallet1 = do
   cid <- sendAda wid sp
   printf "Sent ada, contract instance id: %s\n" $ show cid
 
+remotePort :: Int
+remotePort = 9081
+
 sendAda :: WalletId -> SendParams -> IO ContractInstanceId
 sendAda wid sp = do
   v <-
@@ -77,7 +80,7 @@ sendAda wid sp = do
         (http "127.0.0.1" /: "api" /: "contract" /: "activate")
         (ReqBodyJson $ contractActivationArgs wid $ Send sp)
         jsonResponse
-        (port 9080)
+        (port remotePort)
   let c = responseStatusCode v
   if c == 200
     then return $ responseBody v

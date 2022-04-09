@@ -78,19 +78,6 @@ executable token-pab
                      , plutus-use-cases
                      , text
 
-executable monitor
-  main-is: monitor.hs
-  hs-source-dirs:      app
-  ghc-options:         -Wall
-  build-depends:       aeson
-                     , base ^>= 4.14.1.0
-                     , plutus-contract
-                     , plutus-ledger-api
-                     , plutus-pab
-                     , contracts
-                     , req ^>= 3.9.0
-                     , text
-
 -- executable monitor
 --   main-is: monitor.hs
 --   hs-source-dirs:      app

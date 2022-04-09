@@ -46,12 +46,16 @@ library
                      , cborg
                      , cborg-json
                      , wai-cors
+                     , plutus-ledger
+                     , generic-aeson
   default-language:    Haskell2010
   ghc-options:         -Wall
 
 executable backend
     main-is:           Main.hs
     other-modules:     Lib
+                     , Endpoints
+                     , TxListener
     build-depends:     base ^>=4.14.1.0
                      , blockfrost-client >= 0.1.0.0
                      , blockfrost-api >= 0.1.0.0
@@ -67,5 +71,8 @@ executable backend
                      , plutus-pab
                      , plutus-contract
                      , wai-cors
+                     , plutus-ledger
+                     , bytestring
+                     , generic-aeson
     hs-source-dirs:    src
     default-language:  Haskell2010

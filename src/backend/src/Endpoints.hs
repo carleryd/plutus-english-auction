@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Endpoints
@@ -7,10 +8,18 @@ where
 
 -- import Blockfrost.Types.Cardano.Addresses (AddressUTXO)
 
+import Blockfrost.Types.Shared
 import Control.Monad
-import Data.Aeson (ToJSON (..))
+import Control.Monad.IO.Class
+import Data.Aeson hiding (json)
+import Data.Text (pack)
+import Data.Text.Encoding (decodeUtf8)
+import qualified Data.Text.Lazy as LazyText
+import GHC.Generics (Generic)
+import Generics.Generic.Aeson
 import qualified Lib
 import Network.Wai.Middleware.Cors
+import TxListener (txListener)
 import Web.Scotty
 
 homeEndpoint :: ActionM ()
@@ -43,6 +52,29 @@ balancesEndpoint :: Lib.WalletBalances -> ScottyM ()
 balancesEndpoint wb = do
   get "/balances" $ json $ toJSON wb
 
+data PendingTxResponse = PendingTxResponse
+  { txHash :: String,
+    tokenName :: String
+  }
+  deriving (Generic, Show)
+
+instance ToJSON PendingTxResponse
+
+stripSettings :: Settings
+stripSettings = defaultSettings
+
+instance FromJSON PendingTxResponse
+
+postPendingTx :: ScottyM ()
+postPendingTx = do
+  post "/pending-tx" $ do
+    res <- jsonData :: ActionM PendingTxResponse
+    -- TODO: Implement proper parsing of JSON payload
+    let txh = (TxHash . pack . filter (/= '\"')) (txHash res)
+        tn = filter (/= '\"') (tokenName res)
+    liftIO $ txListener txh tn
+    text $ LazyText.pack ("Success, " <> show txh)
+
 startServer :: IO ()
 startServer = do
   wb <- Lib.getBlockfrostUtxos
@@ -50,6 +82,7 @@ startServer = do
   let endpoints =
         baseEndpoints
           <> balancesEndpoint wb
+          <> postPendingTx
   -- <> pabEndpoints
 
   scotty 3000 (middleware simpleCors <> endpoints)

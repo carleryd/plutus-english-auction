@@ -17,7 +17,6 @@ where
 
 import Control.Monad hiding (fmap)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Map (keys)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Data.OpenApi.Schema (ToSchema)
@@ -29,6 +28,7 @@ import Ledger.Constraints as Constraints
 import qualified Ledger.Typed.Scripts as Scripts
 import Ledger.Value as Value
 import Plutus.Contract as Contract
+import Plutus.Contract.Wallet (getUnspentOutput)
 import qualified PlutusTx
 import PlutusTx.Prelude hiding (Monoid (mempty), Semigroup (..), unless)
 import Text.Printf (printf)
@@ -52,18 +52,15 @@ adjustAndSubmitWith ::
   ) =>
   ScriptLookups a ->
   TxConstraints (Scripts.RedeemerType a) (Scripts.DatumType a) ->
-  Contract w s e ()
+  Contract w s e CardanoTx
 adjustAndSubmitWith lookups constraints = do
-  utx <- adjustUnbalancedTx <$> mkTxConstraints lookups constraints
-  Contract.logInfo @String $ printf "unbalanced: %s" $ show utx
-  yieldUnbalancedTx utx
-
--- Contract.logDebug @String $ printf "unbalanced: %s" $ show utx
--- unsigned <- balanceTx utx
--- Contract.logDebug @String $ printf "balanced: %s" $ show unsigned
--- signed <- submitBalancedTx unsigned
--- Contract.logDebug @String $ printf "signed: %s" $ show signed
--- return signed
+  unbalanced <- adjustUnbalancedTx <$> mkTxConstraints lookups constraints
+  Contract.logDebug @String $ printf "unbalanced: %s" $ show unbalanced
+  unsigned <- balanceTx unbalanced
+  Contract.logDebug @String $ printf "balanced: %s" $ show unsigned
+  signed <- submitBalancedTx unsigned
+  Contract.logDebug @String $ printf "signed: %s" $ show signed
+  return signed
 
 mintToken :: TokenParams -> Contract w s Text CurrencySymbol
 mintToken tp = do
@@ -72,24 +69,16 @@ mintToken tp = do
   case getCredentials addr of
     Nothing -> Contract.throwError $ pack $ printf "CONTRACT: expected pubkey address, but got %s" $ show addr
     Just (x, my) -> do
-      Contract.logDebug @String $ printf "CONTRACT: 4"
-      Contract.logDebug @String $ printf "CONTRACT: getCredentials Just %s, %s)" (show x) (show my)
-
       utxos <- utxosAt addr
-
       Contract.logDebug @String $ printf "CONTRACT: caller UTXOs data %s" (show utxos)
-      Contract.logDebug @String $ printf "CONTRACT: caller UTXOs length %s" (show $ length $ keys utxos)
 
-      let utxoOref = head $ keys utxos
-      Contract.logDebug @String $ printf "CONTRACT: first utxos oref %s" (show utxoOref)
-      let oref = utxoOref
-      -- TODO: Using this hangs contract. Using the head of all UTXOs may cause problems.
-      -- I think it's because we're not running this contract with our wallet
-      -- It's trying to "Get the hash of a public key belonging to the wallet that runs this contract"
-      -- But since we're just packaging up an unsigned tx it doesn't make sense to do this I think.
+      Contract.logDebug @String $ printf "CONTRACT: 8"
+      Contract.logDebug @String $ printf "CONTRACT: getCredentials Just %s, %s)" (show x) (show my)
+      pkh <- Contract.ownPaymentPubKeyHash
+      Contract.logDebug @String $ printf "CONTRACT: pkh: %s" (show pkh)
+      oref <- getUnspentOutput
 
-      -- oref <- getUnspentOutput
-      -- Contract.logDebug @String $ printf "CONTRACT: caller unspent output %s" (show oref)
+      Contract.logDebug @String $ printf "CONTRACT: caller unspent output %s" (show oref)
       o <- fromJust <$> Contract.unspentTxOutFromRef oref
       Contract.logDebug @String $ printf "CONTRACT: picked UTxO at %s with value %s" (show oref) (show $ _ciTxOutValue o)
 

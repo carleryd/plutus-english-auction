@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
+module MintToken where
 
 import Control.Exception (throwIO)
 import Data.String (IsString (..))
@@ -20,8 +20,8 @@ address = unsafeReadAddress "addr_test1qrrswgu70f8wuhdqnk7tk52dla2c7peuukvlvmu0e
 namiAddress :: Address
 namiAddress = unsafeReadAddress "addr_test1qz5gr43kn7nnzdmastvqdkx7kgr8s7qjnf0zm7tvyhj6prjr4fq3q7yn6tgmx08xxq390qyu7asdf2qlngrhghts8uysdfed6a"
 
-wid :: WalletId
-wid = unsafeReadWalletId "8c8c14997236e9372520d26666fb581e9b639ccb"
+walletId :: WalletId
+walletId = unsafeReadWalletId "8c8c14997236e9372520d26666fb581e9b639ccb"
 
 namiWid :: WalletId
 namiWid = unsafeReadWalletId "3345524abf6bbe1809449224b5972c41790b6cf2"
@@ -43,8 +43,8 @@ main = do
 mintStatic :: IO ()
 mintStatic = do
   let amt' = "500"
-      tn' = "ChariTea"
-      wid' = wid
+      tn' = "REWARD"
+      wid' = walletId
       addr' = address
       tp =
         TokenParams
@@ -53,25 +53,24 @@ mintStatic = do
             tpAddress = addr'
           }
 
-  printf "minting token for wallet id %s with parameters %s\n" (show wid) $ show tp
-  cid <- mintToken wid tp
+  printf "minting token for wallet id %s with parameters %s\n" (show walletId) $ show tp
+  cid <- mintToken wid' tp
   printf "minted tokens, contract instance id: %s\n" $ show cid
 
-mintNami :: IO ()
-mintNami = do
-  let amt' = "7"
-      tn' = "NAMI-7"
-      wid' = namiWid
+mintNFT :: String -> IO ()
+mintNFT tokenName = do
+  let amt' = "1"
+      wid' = walletId
       addr' = namiAddress
       tp =
         TokenParams
-          { tpToken = fromString tn',
+          { tpToken = fromString tokenName,
             tpAmount = read amt',
             tpAddress = addr'
           }
 
-  printf "minting token for wallet id %s with parameters %s\n" (show namiWid) $ show tp
-  cid <- mintToken namiWid tp
+  printf "minting token using wallet id %s with parameters %s\n" (show wid') $ show tp
+  cid <- mintToken wid' tp
   printf "minted tokens, contract instance id: %s\n" $ show cid
 
 mintToken :: WalletId -> TokenParams -> IO ContractInstanceId
