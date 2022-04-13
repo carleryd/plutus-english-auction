@@ -38,7 +38,6 @@ library
                      , cardano-ledger-core
                      , containers
                      , data-default
-                     , playground-common
                      , plutus-contract
                      , plutus-use-cases
                      , plutus-ledger
@@ -56,6 +55,7 @@ library
                      , plutus-pab
                      , req ^>= 3.9.0
                      , html-entities
+                     , playground-common
   default-language:    Haskell2010
   ghc-options:         -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 

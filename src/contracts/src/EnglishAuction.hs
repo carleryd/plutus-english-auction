@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -31,12 +32,6 @@ module EnglishAuction
     useEndpoints,
     useEndpoints',
     useStartEndpoint,
-    schemas,
-    ensureKnownCurrencies,
-    printJson,
-    printSchemas,
-    registeredKnownCurrencies,
-    stage,
     auctionValidator,
     AuctionDatum (..),
     AuctionAction (..),
@@ -47,6 +42,7 @@ where
 
 import Control.Monad (Monad (return, (>>)), forever, void, when)
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Data
 import Data.Default (Default (def))
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map as Map (singleton, toList)
@@ -60,9 +56,6 @@ import qualified Ledger.Constraints as Constraints
 import Ledger.TimeSlot (slotToBeginPOSIXTime)
 import qualified Ledger.Typed.Scripts as Scripts
 import Ledger.Value as Value
-import Playground.Contract (ensureKnownCurrencies, printJson, printSchemas, stage)
-import Playground.TH (mkKnownCurrencies, mkSchemaDefinitions)
-import Playground.Types (KnownCurrency (..))
 import Plutus.Contract
 import qualified PlutusTx
 import PlutusTx.Code (getCovIdx)
@@ -313,7 +306,7 @@ data StartParams = StartParams
     spCurrency :: !CurrencySymbol,
     spToken :: !TokenName
   }
-  deriving (Haskell.Show, Haskell.Eq, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Haskell.Show, Haskell.Eq, Generic, Data, ToJSON, FromJSON, ToSchema)
 
 data BidParams = BidParams
   { bpCurrency :: !CurrencySymbol,
@@ -321,14 +314,14 @@ data BidParams = BidParams
     bpBid :: !Integer,
     bpSeller :: !PaymentPubKeyHash
   }
-  deriving (Haskell.Show, Haskell.Eq, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Haskell.Show, Haskell.Eq, Generic, Data, ToJSON, FromJSON, ToSchema)
 
 data CloseParams = CloseParams
   { cpCurrency :: !CurrencySymbol,
     cpToken :: !TokenName,
     cpSeller :: !PaymentPubKeyHash
   }
-  deriving (Haskell.Show, Haskell.Eq, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Haskell.Show, Haskell.Eq, Generic, Data, ToJSON, FromJSON, ToSchema)
 
 start :: AsContractError e => StartParams -> Contract w s e ()
 start StartParams {..} = do
@@ -494,9 +487,5 @@ useEndpoints =
     bid' = endpoint @"bid" bid
     close' = endpoint @"close" close
 
-mkSchemaDefinitions ''AuctionSchema
-
-myToken :: KnownCurrency
-myToken = KnownCurrency (ValidatorHash "f") "Token" (TokenName "T" :| [])
-
-mkKnownCurrencies ['myToken]
+-- myToken :: KnownCurrency
+-- myToken = KnownCurrency (ValidatorHash "f") "Token" (TokenName "T" :| [])

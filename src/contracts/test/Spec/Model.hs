@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -25,6 +26,7 @@ where
 
 import Control.Lens hiding (elements)
 import Control.Monad (void, when)
+import Data.Data (Data)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -67,12 +69,12 @@ data AuctionState = AuctionState
     _asHighestBid :: !(Maybe Integer),
     _asToken :: !(Maybe (AssetClass, Integer))
   }
-  deriving (Show)
+  deriving (Show, Data)
 
 makeLenses ''AuctionState
 
 newtype AuctionModel = AuctionModel {_auctionModel :: Map Wallet AuctionState}
-  deriving (Show)
+  deriving (Show, Data)
 
 makeLenses ''AuctionModel
 
@@ -84,7 +86,7 @@ instance ContractModel AuctionModel where
     = Start Wallet StartParams
     | Bid Wallet Wallet BidParams -- First `Wallet` owns auction, second runs/interacts with contract
     | Close Wallet Wallet CloseParams
-    deriving (Show, Eq)
+    deriving (Show, Eq, Data)
 
   data ContractInstanceKey AuctionModel w s e p where
     StartKey ::

@@ -58,7 +58,7 @@ testCoverage = do
     Right () -> putStrLn $ "unexpected tasty result"
 
 emCfg :: EmulatorConfig
-emCfg = EmulatorConfig (Left $ Map.fromList [(knownWallet w, v) | w <- [1 .. 3]]) def def
+emCfg = EmulatorConfig (Left $ Map.fromList [(knownWallet w, v) | w <- [1 .. 3]]) def
   where
     v :: Value
     v = Ada.lovelaceValueOf 1_000_000_000 <> assetClassValue tokenA 1000

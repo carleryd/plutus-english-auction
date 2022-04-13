@@ -12,7 +12,7 @@ txListener :: TxHash -> String -> IO ()
 txListener txHash tokenName = do
   printf "Listening to block confirmations on transaction %s\n" (show txHash)
 
-  go txHash 10
+  go txHash 30
   where
     go :: TxHash -> Integer -> IO ()
     go txh tries = do

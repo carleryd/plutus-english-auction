@@ -69,16 +69,16 @@ mintToken tp = do
   case getCredentials addr of
     Nothing -> Contract.throwError $ pack $ printf "CONTRACT: expected pubkey address, but got %s" $ show addr
     Just (x, my) -> do
+      Contract.logDebug @String $ printf "CONTRACT: getCredentials Just %s, %s)" (show x) (show my)
+
       utxos <- utxosAt addr
       Contract.logDebug @String $ printf "CONTRACT: caller UTXOs data %s" (show utxos)
 
-      Contract.logDebug @String $ printf "CONTRACT: 8"
-      Contract.logDebug @String $ printf "CONTRACT: getCredentials Just %s, %s)" (show x) (show my)
-      pkh <- Contract.ownPaymentPubKeyHash
-      Contract.logDebug @String $ printf "CONTRACT: pkh: %s" (show pkh)
       oref <- getUnspentOutput
-
       Contract.logDebug @String $ printf "CONTRACT: caller unspent output %s" (show oref)
+
+      -- TODO: This very often fails (~50% of the time) when we have unspent output (valid oref).
+      -- Can we obtain a `ChainIndexTxOut` any other way?
       o <- fromJust <$> Contract.unspentTxOutFromRef oref
       Contract.logDebug @String $ printf "CONTRACT: picked UTxO at %s with value %s" (show oref) (show $ _ciTxOutValue o)
 

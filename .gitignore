@@ -3,3 +3,4 @@ dist-newstyle
 *.local
 .DS_Store
 frontend/output
+result
