@@ -6,7 +6,7 @@ cradle:
     - path: "src/Main.hs"
       component: "backend:exe:backend"
 
-    - path: "src/Lib.hs"
+    - path: "src/Utils.hs"
       component: "backend:exe:backend"
 
     - path: "src/Endpoints.hs"

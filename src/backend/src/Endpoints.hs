@@ -9,14 +9,11 @@ where
 -- import Blockfrost.Types.Cardano.Addresses (AddressUTXO)
 
 import Blockfrost.Types.Shared
-import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson hiding (json)
 import Data.Text (pack)
-import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.Lazy as LazyText
 import GHC.Generics (Generic)
-import Generics.Generic.Aeson
 import Network.Wai.Middleware.Cors
 import TxListener (txListener)
 import qualified Utils
@@ -37,7 +34,7 @@ baseEndpoints = do
     v <- param "file"
     file ("./src/assets/frontend-dist/" <> v)
 
-balancesEndpoint :: Lib.WalletBalances -> ScottyM ()
+balancesEndpoint :: Utils.WalletBalances -> ScottyM ()
 balancesEndpoint wb = do
   get "/balances" $ json $ toJSON wb
 
@@ -63,7 +60,7 @@ postPendingTx = do
 
 startServer :: IO ()
 startServer = do
-  wb <- Lib.getBlockfrostUtxos
+  wb <- Utils.getBlockfrostUtxos
 
   let endpoints =
         baseEndpoints

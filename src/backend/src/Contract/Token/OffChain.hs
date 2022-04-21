@@ -20,7 +20,6 @@ import Contract.Utils (getCredentials)
 import Control.Monad hiding (fmap)
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Map as Map
-import Data.Maybe (fromJust)
 import Data.OpenApi.Schema (ToSchema)
 import Data.Text (Text, pack)
 import Data.Void (Void)
@@ -71,21 +70,15 @@ mintToken tp = do
     Just (x, my) -> do
       Contract.logDebug @String $ printf "[CONTRACT] getCredentials Just %s, %s)" (show x) (show my)
 
-      -- TODO: This `pkh` doesn't hold any UTXOs. PAB must be broken, how do we handle this?
-      -- pkh <- Contract.ownPaymentPubKeyHash
-      -- Contract.logDebug @String $ printf "[CONTRACT] pkh: %s" (show pkh)
-
       oref <- getUnspentOutput
       Contract.logDebug @String $ printf "[CONTRACT] getUnspentOutput %s" (show oref)
-      oM <- Contract.unspentTxOutFromRef oref
-      Contract.logDebug @String $ printf "[CONTRACT] unspentTxOutFromRef %s" (show oM)
 
-      -- utxos <- utxosAt (pubKeyHashAddress pkh Nothing)
-      -- Contract.logDebug @String $ printf "[CONTRACT] utxos: %s" (show utxos)
+      utxoM <- Contract.unspentTxOutFromRef oref
+      Contract.logDebug @String $ printf "[CONTRACT] unspentTxOutFromRef %s" (show utxoM)
 
-      case oM of
+      case utxoM of
         Nothing -> Contract.logError @String "[CONTRACT] No UTXOs found at pkh"
-        Just o -> do
+        Just utxo -> do
           Contract.logDebug @String $ printf "[CONTRACT] picked UTxO at %s" (show oref)
 
           let tn = tpToken tp
@@ -97,7 +90,7 @@ mintToken tp = do
                 Just y -> Constraints.mustPayToPubKeyAddress x y val
               lookups =
                 Constraints.mintingPolicy (tokenPolicy oref tn amt)
-                  <> Constraints.unspentOutputs (Map.singleton oref o)
+                  <> Constraints.unspentOutputs (Map.singleton oref utxo)
               constraints =
                 Constraints.mustMintValue val
                   <> Constraints.mustSpendPubKeyOutput oref
