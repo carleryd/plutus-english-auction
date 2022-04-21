@@ -6,9 +6,8 @@ module Endpoints
   )
 where
 
--- import Blockfrost.Types.Cardano.Addresses (AddressUTXO)
-
 import Blockfrost.Types.Shared
+import Contract.Utils (unsafeReadAddress)
 import Control.Monad.IO.Class
 import Data.Aeson hiding (json)
 import Data.Text (pack)
@@ -40,7 +39,8 @@ balancesEndpoint wb = do
 
 data PendingTxResponse = PendingTxResponse
   { txHash :: String,
-    tokenName :: String
+    tokenName :: String,
+    senderAddress :: String
   }
   deriving (Generic, Show)
 
@@ -55,7 +55,8 @@ postPendingTx = do
     -- TODO: Implement proper parsing of JSON payload
     let txh = (TxHash . pack . filter (/= '\"')) (txHash res)
         tn = filter (/= '\"') (tokenName res)
-    liftIO $ txListener txh tn
+        address = unsafeReadAddress $ filter (/= '\"') (senderAddress res)
+    liftIO $ txListener txh tn address
     text $ LazyText.pack ("Success, " <> show txh)
 
 startServer :: IO ()

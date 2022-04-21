@@ -14,17 +14,12 @@ import Text.Printf (printf)
 import Wallet.Emulator.Wallet (WalletId (..))
 import Wallet.Types (ContractInstanceId (..))
 
-address :: Address
-address = unsafeReadAddress "addr_test1qrrswgu70f8wuhdqnk7tk52dla2c7peuukvlvmu0e338m4w5qqhj89csyv7y7543l24hz8t00rrgyct2p5gv3udgtpxqprzavs"
-
 namiAddress :: Address
 namiAddress = unsafeReadAddress "addr_test1qz5gr43kn7nnzdmastvqdkx7kgr8s7qjnf0zm7tvyhj6prjr4fq3q7yn6tgmx08xxq390qyu7asdf2qlngrhghts8uysdfed6a"
 
+-- Wallet 1 id
 walletId :: WalletId
 walletId = unsafeReadWalletId "8c8c14997236e9372520d26666fb581e9b639ccb"
-
-namiWid :: WalletId
-namiWid = unsafeReadWalletId "3345524abf6bbe1809449224b5972c41790b6cf2"
 
 main :: IO ()
 main = do
@@ -45,7 +40,7 @@ mintStatic = do
   let amt' = "500"
       tn' = "REWARD"
       wid' = walletId
-      addr' = address
+      addr' = namiAddress
       tp =
         TokenParams
           { tpToken = fromString tn',
@@ -57,11 +52,11 @@ mintStatic = do
   cid <- mintToken wid' tp
   printf "minted tokens, contract instance id: %s\n" $ show cid
 
-mintNFT :: String -> IO ()
-mintNFT tokenName = do
+mintNFT :: String -> Address -> IO ()
+mintNFT tokenName sender = do
   let amt' = "1"
       wid' = walletId
-      addr' = namiAddress
+      addr' = sender
       tp =
         TokenParams
           { tpToken = fromString tokenName,

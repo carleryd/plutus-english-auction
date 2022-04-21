@@ -2,14 +2,15 @@
 
 module TxListener where
 
-import Blockfrost.Types.Shared
+import Blockfrost.Types.Shared hiding (Address)
 import GHC.Conc (threadDelay)
+import Ledger.Address (Address)
 import MintToken (mintNFT)
 import Text.Printf (printf)
 import Utils (getBlockConfirmations)
 
-txListener :: TxHash -> String -> IO ()
-txListener txHash tokenName = do
+txListener :: TxHash -> String -> Address -> IO ()
+txListener txHash tokenName sender = do
   printf "Listening to block confirmations on transaction %s\n" (show txHash)
 
   go txHash 30
@@ -33,7 +34,7 @@ txListener txHash tokenName = do
             then do
               printf "Success! We've reached %s confirmations\n" (show goal)
               printf "Calling `mintNFT` with tokenName: %s\n" (show tokenName)
-              mintNFT tokenName
+              mintNFT tokenName sender
               return ()
             else do
               printf

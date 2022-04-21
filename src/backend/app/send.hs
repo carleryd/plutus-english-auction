@@ -31,14 +31,6 @@ wallet1Pkh = case (addressCredential wallet1Address) of
   PubKeyCredential pkh -> ioReturn [PaymentPubKeyHash pkh]
   _ -> ioReturn []
 
--- wallet1Pkh :: Ledger.PaymentPubKeyHash
--- wallet1Pkh =
---   PaymentPubKeyHash
---     "fd5309253a86281ffbfee20e7c63b4b7d83bdcee309ba810d96639c4"
-
-namiWid :: WalletId
-namiWid = unsafeReadWalletId "3345524abf6bbe1809449224b5972c41790b6cf2"
-
 ioReturn :: a -> IO a
 ioReturn = return
 
