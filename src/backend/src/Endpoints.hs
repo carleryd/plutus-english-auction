@@ -17,9 +17,9 @@ import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.Lazy as LazyText
 import GHC.Generics (Generic)
 import Generics.Generic.Aeson
-import qualified Lib
 import Network.Wai.Middleware.Cors
 import TxListener (txListener)
+import qualified Utils
 import Web.Scotty
 
 homeEndpoint :: ActionM ()
@@ -37,17 +37,6 @@ baseEndpoints = do
     v <- param "file"
     file ("./src/assets/frontend-dist/" <> v)
 
--- pabEndpoints :: ScottyM ()
--- pabEndpoints =
---   get "/api/contract/instance/:cid/status" $ do
---     cid <- param "cid"
---     void next
---     redirect ("http://localhost:8010/proxy/api/contract/instance/" <> cid <> "/status")
-
--- balancesEndpoint :: Lib.WalletBalances -> ScottyM ()
--- balancesEndpoint wb = do
---   get "/balances" $ json $ toJSON wb
-
 balancesEndpoint :: Lib.WalletBalances -> ScottyM ()
 balancesEndpoint wb = do
   get "/balances" $ json $ toJSON wb
@@ -59,9 +48,6 @@ data PendingTxResponse = PendingTxResponse
   deriving (Generic, Show)
 
 instance ToJSON PendingTxResponse
-
-stripSettings :: Settings
-stripSettings = defaultSettings
 
 instance FromJSON PendingTxResponse
 
@@ -83,6 +69,5 @@ startServer = do
         baseEndpoints
           <> balancesEndpoint wb
           <> postPendingTx
-  -- <> pabEndpoints
 
   scotty 3000 (middleware simpleCors <> endpoints)

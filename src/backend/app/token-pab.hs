@@ -11,7 +11,7 @@ module Main
   )
 where
 
-import PAB (TokenContracts)
+import Contract.PAB (TokenContracts)
 import qualified Plutus.PAB.Effects.Contract.Builtin as Builtin
 import Plutus.PAB.Run (runWith)
 

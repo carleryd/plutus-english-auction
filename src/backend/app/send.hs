@@ -4,6 +4,9 @@
 
 module Main where
 
+import Contract.PAB (TokenContracts (..))
+import Contract.SendContract (SendParams (..))
+import Contract.Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
 import Control.Exception (throwIO)
 import Data.ByteString
 import Data.String (IsString (..))
@@ -12,11 +15,8 @@ import Ledger.Ada (lovelaceValueOf)
 import Ledger.Address (Address, addressCredential)
 import Ledger.Credential (Credential (..))
 import Network.HTTP.Req
-import PAB (TokenContracts (..))
-import SendContract (SendParams (..))
 import System.Environment (getArgs)
 import Text.Printf (printf)
-import Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
 import Wallet.Emulator.Wallet (WalletId (..))
 import Wallet.Types (ContractInstanceId (..))
 

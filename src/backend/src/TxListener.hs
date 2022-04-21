@@ -4,9 +4,9 @@ module TxListener where
 
 import Blockfrost.Types.Shared
 import GHC.Conc (threadDelay)
-import Lib (getBlockConfirmations)
 import MintToken (mintNFT)
 import Text.Printf (printf)
+import Utils (getBlockConfirmations)
 
 txListener :: TxHash -> String -> IO ()
 txListener txHash tokenName = do
@@ -17,7 +17,7 @@ txListener txHash tokenName = do
     go :: TxHash -> Integer -> IO ()
     go txh tries = do
       -- Amount of required block confirmations we require before we mint and send NFT
-      let goal = 2
+      let goal = 1
       confirmationsE <- getBlockConfirmations txh
       case confirmationsE of
         Left _ -> do

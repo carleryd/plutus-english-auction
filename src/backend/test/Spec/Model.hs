@@ -24,6 +24,7 @@ module Spec.Model
   )
 where
 
+import Contract.EnglishAuction hiding (Bid, Close)
 import Control.Lens hiding (elements)
 import Control.Monad (void, when)
 import Data.Data (Data)
@@ -32,7 +33,6 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.String (IsString (..))
 import Data.Text (Text)
-import EnglishAuction hiding (Bid, Close)
 import Ledger
   ( CurrencySymbol,
     minAdaTxOut,

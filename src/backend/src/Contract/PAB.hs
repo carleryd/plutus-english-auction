@@ -3,26 +3,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 
-module PAB
+module Contract.PAB
   ( Address,
     TokenContracts (..),
   )
 where
 
+import qualified Contract.SendContract as SendContract
+import qualified Contract.Token.OffChain as Token
 import Data.Aeson (FromJSON, ToJSON)
 import Data.OpenApi.Schema (ToSchema)
 import GHC.Generics (Generic)
 import Ledger (Address, PaymentPubKeyHash (..))
-import qualified Monitor
 import Plutus.PAB.Effects.Contract.Builtin (Empty, HasDefinitions (..), SomeBuiltin (..), endpointsToSchemas)
 import Prettyprinter (Pretty (..), viaShow)
-import qualified SendContract
-import qualified Token.OffChain as Token
 import Wallet.Emulator.Wallet (knownWallet, mockWalletAddress)
 
 data TokenContracts
   = Mint Token.TokenParams
-  | Monitor Address
   | Send SendContract.SendParams
   deriving (Eq, Show, Ord, Generic, FromJSON, ToJSON, ToSchema)
 
@@ -30,10 +28,9 @@ instance Pretty TokenContracts where
   pretty = viaShow
 
 instance HasDefinitions TokenContracts where
-  getDefinitions = [Mint exampleTP, Monitor exampleAddr, Send exampleSP]
+  getDefinitions = [Mint exampleTP, Send exampleSP]
 
   getContract (Mint tp) = SomeBuiltin $ Token.mintToken @() @Empty tp
-  getContract (Monitor addr) = SomeBuiltin $ Monitor.monitor addr
   getContract (Send sp) = SomeBuiltin $ SendContract.send @() @Empty sp
 
   getSchema = const $ endpointsToSchemas @Empty

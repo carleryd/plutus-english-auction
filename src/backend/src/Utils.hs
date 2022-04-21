@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lib where
+module Utils where
 
 import Blockfrost.API ()
 import Blockfrost.Client
@@ -24,6 +24,8 @@ import Blockfrost.Types.Cardano.Addresses (AddressUtxo)
 import Blockfrost.Types.Cardano.Blocks
 import Blockfrost.Types.Cardano.Transactions
 import Blockfrost.Types.Shared
+import Contract.PAB (TokenContracts (..))
+import Contract.Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
 import Control.Exception (throwIO)
 import qualified Control.Lens as Lens
 import Control.Monad (join, when)
@@ -33,12 +35,10 @@ import Data.Text (pack, unpack)
 import qualified Data.Text
 import GHC.Generics
 import Network.HTTP.Req
-import PAB (TokenContracts (..))
 import Plutus.PAB.Events.ContractInstanceState (PartiallyDecodedResponse (..))
 import Plutus.PAB.Webserver.Types (ContractInstanceClientState (..))
 import qualified System.Directory
 import Text.Printf (printf)
-import Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
 
 w1Address :: Address
 w1Address =
@@ -74,23 +74,10 @@ instance ToJSON WalletBalances
 
 instance FromJSON WalletBalances
 
--- getMonitorState :: ContractInstanceId -> IO (ContractInstanceClientState TokenContracts)
--- getMonitorState cid = do
---   v <-
---     runReq defaultHttpConfig $
---       req
---         GET
---         (http "127.0.0.1" /: "api" /: "contract" /: "instance" /: pack (cidToString cid) /: "status")
---         NoReqBody
---         jsonResponse
---         (port 9080)
---   let c = responseStatusCode v
---   when (c /= 200) $
---     throwIO $ userError $ printf "ERROR: %d\n" c
---   return $ responseBody v
-
 cardanoServicesIP :: Data.Text.Text
-cardanoServicesIP = "192.168.1.103"
+cardanoServicesIP = "localhost"
+
+-- cardanoServicesIP = "192.168.1.103"
 
 getWalletInfo :: String -> IO String
 getWalletInfo _wid = do

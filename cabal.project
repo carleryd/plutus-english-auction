@@ -1,33 +1,7 @@
 -- Bump this if you need newer packages.
 index-state: 2022-02-22T20:47:03Z
 
-packages: src/contracts
-        , src/backend
-
--- You never, ever, want this.
-write-ghc-environment-files: never
-
--- Always build tests and benchmarks.
-tests: true
-benchmarks: true
-
--- Plutus revision from 2021/08/16
-source-repository-package
-  type: git
-  location: https://github.com/input-output-hk/plutus-apps.git
-  subdir:
-    freer-extras
-    playground-common
-    plutus-contract
-    plutus-contract-certification
-    plutus-chain-index
-    plutus-chain-index-core
-    plutus-ledger
-    plutus-ledger-constraints
-    plutus-pab
-    plutus-use-cases
-    quickcheck-dynamic
-  tag: v2022-04-06
+packages: src/backend
 
 -- The following sections are copied from the 'plutus-apps' repository cabal.project at the revision
 -- given above.
@@ -84,6 +58,23 @@ package cardano-wallet-launcher
   optimization: False
 package cardano-wallet-core-integration
   optimization: False
+
+source-repository-package
+  type: git
+  location: https://github.com/locallycompact/plutus-apps.git
+  subdir:
+    freer-extras
+    playground-common
+    plutus-contract
+    plutus-contract-certification
+    plutus-chain-index
+    plutus-chain-index-core
+    plutus-ledger
+    plutus-ledger-constraints
+    plutus-pab
+    plutus-use-cases
+    quickcheck-dynamic
+  tag: 9178afcc75fe9b77dfd7dafbe9c159fd09677472
 
 source-repository-package
   type: git
@@ -266,7 +257,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus
-  tag: 4127e9cd6e889824d724c30eae55033cb50cbf3e
+  tag: e566e7a7d000fd2128dc4f2fdceb488ad4fd8a54
   subdir:
     plutus-core
     plutus-ledger-api

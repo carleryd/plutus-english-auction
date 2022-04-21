@@ -18,7 +18,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module EnglishAuction
+module Contract.EnglishAuction
   ( Auction (..),
     StartParams (..),
     BidParams (..),
@@ -40,20 +40,16 @@ module EnglishAuction
   )
 where
 
-import Control.Monad (Monad (return, (>>)), forever, void, when)
+import Control.Monad (Monad (return), forever, void, when)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Data
-import Data.Default (Default (def))
-import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map as Map (singleton, toList)
 import Data.Maybe
-import Data.Monoid (Last (..))
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import Ledger
 import Ledger.Ada as Ada (lovelaceValueOf)
 import qualified Ledger.Constraints as Constraints
-import Ledger.TimeSlot (slotToBeginPOSIXTime)
 import qualified Ledger.Typed.Scripts as Scripts
 import Ledger.Value as Value
 import Plutus.Contract

@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SendContract
+module Contract.SendContract
   ( send,
     SendParams (..),
   )

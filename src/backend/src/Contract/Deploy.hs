@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Deploy where
+module Contract.Deploy where
 
 import Cardano.Api
   ( FileError,
@@ -15,11 +15,11 @@ import Cardano.Api
   )
 import Cardano.Api.Shelley (PlutusScript (..))
 import Codec.Serialise (serialise)
+import Contract.EnglishAuction
 import Data.Aeson (encode)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Short as SBS
 import Data.Default (Default (..))
-import EnglishAuction
 import qualified Ledger
 import Ledger.TimeSlot (slotToEndPOSIXTime)
 import qualified Ledger.Value as Value

@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Utils
+module Contract.Utils
   ( tryReadAddress,
     unsafeReadAddress,
     tryReadWalletId,

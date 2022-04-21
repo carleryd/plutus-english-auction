@@ -11,6 +11,7 @@
 
 module Spec.Trace where
 
+import Contract.EnglishAuction
 import Control.Exception
 import Control.Lens
 import Control.Monad (void)
@@ -18,7 +19,6 @@ import Control.Monad.Freer.Extras as Extras
 import Data.Default (Default (..))
 import Data.IORef
 import qualified Data.Map as Map
-import EnglishAuction
 import Ledger
 import qualified Ledger.Ada as Ada
 import Ledger.TimeSlot (slotToBeginPOSIXTime)

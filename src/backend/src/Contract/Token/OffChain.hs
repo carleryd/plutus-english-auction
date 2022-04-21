@@ -8,13 +8,15 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Token.OffChain
+module Contract.Token.OffChain
   ( TokenParams (..),
     adjustAndSubmitWith,
     mintToken,
   )
 where
 
+import Contract.Token.OnChain
+import Contract.Utils (getCredentials)
 import Control.Monad hiding (fmap)
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Map as Map
@@ -32,8 +34,6 @@ import Plutus.Contract.Wallet (getUnspentOutput)
 import qualified PlutusTx
 import PlutusTx.Prelude hiding (Monoid (mempty), Semigroup (..), unless)
 import Text.Printf (printf)
-import Token.OnChain
-import Utils (getCredentials)
 import Prelude (Semigroup (..), Show (show), String)
 import qualified Prelude
 
@@ -62,41 +62,46 @@ adjustAndSubmitWith lookups constraints = do
   Contract.logDebug @String $ printf "signed: %s" $ show signed
   return signed
 
-mintToken :: TokenParams -> Contract w s Text CurrencySymbol
+mintToken :: TokenParams -> Contract w s Text ()
 mintToken tp = do
-  Contract.logDebug @String $ printf "CONTRACT: started minting: %s" $ show tp
+  Contract.logDebug @String $ printf "[CONTRACT] started minting: %s" $ show tp
   let addr = tpAddress tp
   case getCredentials addr of
-    Nothing -> Contract.throwError $ pack $ printf "CONTRACT: expected pubkey address, but got %s" $ show addr
+    Nothing -> Contract.throwError $ pack $ printf "[CONTRACT] expected pubkey address, but got %s" $ show addr
     Just (x, my) -> do
-      Contract.logDebug @String $ printf "CONTRACT: getCredentials Just %s, %s)" (show x) (show my)
+      Contract.logDebug @String $ printf "[CONTRACT] getCredentials Just %s, %s)" (show x) (show my)
 
-      utxos <- utxosAt addr
-      Contract.logDebug @String $ printf "CONTRACT: caller UTXOs data %s" (show utxos)
+      -- TODO: This `pkh` doesn't hold any UTXOs. PAB must be broken, how do we handle this?
+      -- pkh <- Contract.ownPaymentPubKeyHash
+      -- Contract.logDebug @String $ printf "[CONTRACT] pkh: %s" (show pkh)
 
       oref <- getUnspentOutput
-      Contract.logDebug @String $ printf "CONTRACT: caller unspent output %s" (show oref)
+      Contract.logDebug @String $ printf "[CONTRACT] getUnspentOutput %s" (show oref)
+      oM <- Contract.unspentTxOutFromRef oref
+      Contract.logDebug @String $ printf "[CONTRACT] unspentTxOutFromRef %s" (show oM)
 
-      -- TODO: This very often fails (~50% of the time) when we have unspent output (valid oref).
-      -- Can we obtain a `ChainIndexTxOut` any other way?
-      o <- fromJust <$> Contract.unspentTxOutFromRef oref
-      Contract.logDebug @String $ printf "CONTRACT: picked UTxO at %s with value %s" (show oref) (show $ _ciTxOutValue o)
+      -- utxos <- utxosAt (pubKeyHashAddress pkh Nothing)
+      -- Contract.logDebug @String $ printf "[CONTRACT] utxos: %s" (show utxos)
 
-      let tn = tpToken tp
-          amt = tpAmount tp
-          cs = tokenCurSymbol oref tn amt
-          val = Value.singleton cs tn amt
-          c = case my of
-            Nothing -> Constraints.mustPayToPubKey x val
-            Just y -> Constraints.mustPayToPubKeyAddress x y val
-          lookups =
-            Constraints.mintingPolicy (tokenPolicy oref tn amt)
-              <> Constraints.unspentOutputs (Map.singleton oref o)
-          constraints =
-            Constraints.mustMintValue val
-              <> Constraints.mustSpendPubKeyOutput oref
-              <> c
+      case oM of
+        Nothing -> Contract.logError @String "[CONTRACT] No UTXOs found at pkh"
+        Just o -> do
+          Contract.logDebug @String $ printf "[CONTRACT] picked UTxO at %s" (show oref)
 
-      void $ adjustAndSubmitWith @Void lookups constraints
-      Contract.logInfo @String $ printf "CONTRACT: created unbalanced minting tx of %s" (show val)
-      return cs
+          let tn = tpToken tp
+              amt = tpAmount tp
+              cs = tokenCurSymbol oref tn amt
+              val = Value.singleton cs tn amt
+              c = case my of
+                Nothing -> Constraints.mustPayToPubKey x val
+                Just y -> Constraints.mustPayToPubKeyAddress x y val
+              lookups =
+                Constraints.mintingPolicy (tokenPolicy oref tn amt)
+                  <> Constraints.unspentOutputs (Map.singleton oref o)
+              constraints =
+                Constraints.mustMintValue val
+                  <> Constraints.mustSpendPubKeyOutput oref
+                  <> c
+
+          void $ adjustAndSubmitWith @Void lookups constraints
+          Contract.logInfo @String $ printf "[CONTRACT] Submitted minting tx of %s" (show val)

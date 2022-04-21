@@ -13,13 +13,12 @@ pabWebserverConfig:
 
 walletServerConfig:
   tag: LocalWalletConfig
-  # tag: RemoteWalletConfig
   walletSettings:
-    baseUrl: http://192.168.1.103:8090
+    baseUrl: http://localhost:8090
 
 nodeServerConfig:
-  pscSocketPath: testnet/node.sock
-  pscBaseUrl: "192.168.1.103"
+  pscSocketPath: /Users/jackjazz/Programming/crypto/plutus-apps-lc/plutus-pab/test-node/testnet/node.sock
+  pscBaseUrl: "localhost"
   pscKeptBlocks: 2160
   pscNetworkId: "1097911063" # Testnet network ID (main net = empty string)
   pscSlotConfig:
@@ -33,20 +32,26 @@ nodeServerConfig:
   pscNodeMode: AlonzoNode
 
 chainIndexConfig:
-  ciBaseUrl: http://192.168.1.103:9083
+  ciBaseUrl: http://localhost:9083
   ciWatchedAddresses: []
 
 requestProcessingConfig:
   requestProcessingInterval: 1
 
+# TODO: Found this in plutus-apps, should I use?
+# signingProcessConfig:
+#   spBaseUrl: http://localhost:9084
+#   spWallet:
+#     getWallet: 1
+
 # metadataServerConfig:
 #   mdBaseUrl: http://localhost:9085
 
 developmentOptions:
-  pabRollbackHistory: 1
+  pabRollbackHistory: null
   pabResumeFrom:
     # "tag" : "PointAtGenesis" }
       { "tag" : "Point"
-      , "pointBlockId" : "366984e016edacc6c02df5e435f29b3c7eda0bc1a740c2779a143a41ab7b836b"
-      , "pointSlot" : {"getSlot" : 55479728}
+      , "pointBlockId" : "2bc7a51571c5236ebef5f1a8b9b300ae9487f3610cd7c13cf14668675b9cb1e9"
+      , "pointSlot" : {"getSlot" : 56088801}
       }

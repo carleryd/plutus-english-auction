@@ -115,7 +115,7 @@ handleAction = case _ of
     log ("Name.isEnabled: " <> show Nami.isEnabled)
     log ("Minting token: " <> tokenName)
 
-    let cid = "d8bd4478-aa7d-4a67-aab9-22d0bc6daca1"
+    let cid = "60065c45-5298-4774-bdc8-45e14db4851d"
     partialCborTx <- H.liftAff $ fetchContractPartialTx cid
     makePaymentRes <-
       H.lift

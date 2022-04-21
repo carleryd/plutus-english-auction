@@ -2,15 +2,15 @@
 
 module MintToken where
 
+import Contract.PAB (TokenContracts (..))
+import Contract.Token.OffChain (TokenParams (..))
+import Contract.Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
 import Control.Exception (throwIO)
 import Data.String (IsString (..))
 import Ledger.Address (Address)
 import Network.HTTP.Req
-import PAB (TokenContracts (..))
 import System.Environment (getArgs)
 import Text.Printf (printf)
-import Token.OffChain (TokenParams (..))
-import Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
 import Wallet.Emulator.Wallet (WalletId (..))
 import Wallet.Types (ContractInstanceId (..))
 

@@ -3,5 +3,14 @@ cradle:
     - path: "src"
       component: "lib:backend"
 
-    - path: "app/Main.hs"
+    - path: "src/Main.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/Lib.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/Endpoints.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/TxListener.hs"
       component: "backend:exe:backend"
