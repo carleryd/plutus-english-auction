@@ -57,7 +57,7 @@ postPendingTx = do
         tn = filter (/= '\"') (tokenName res)
         address = unsafeReadAddress $ filter (/= '\"') (senderAddress res)
     liftIO $ txListener txh tn address
-    text $ LazyText.pack ("Success, " <> show txh)
+    json ("hello" :: String)
 
 startServer :: IO ()
 startServer = do

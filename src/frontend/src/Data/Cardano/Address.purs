@@ -2,9 +2,11 @@ module Data.Cardano.Address
   ( Address
   , fromBech32
   , toBech32
+  , fromBytes
   ) where
 
 import Prologue
+
 import Control.Monad.Reader (class MonadAsk, asks)
 import Data.Cardano (CardanoWasm)
 import Effect.Aff (Error)
@@ -17,3 +19,8 @@ fromBech32 :: forall m. MonadAsk CardanoWasm m => String -> m (Either Error Addr
 fromBech32 bech32 = asks \wasm -> fromBech32Impl wasm bech32 Left Right
 
 foreign import toBech32 :: Address -> String
+
+foreign import fromBytesImpl :: forall r. CardanoWasm -> String -> (Error -> r) -> (Address -> r) -> r
+
+fromBytes :: forall m. MonadAsk CardanoWasm m => String -> m (Either Error Address)
+fromBytes cborHex = asks \wasm -> fromBytesImpl wasm cborHex Left Right

@@ -13,9 +13,10 @@ import Data.Array (head, last)
 import Data.ArrayBuffer.Typed as ArrayBuffer
 import Data.ArrayBuffer.Types (Uint8Array)
 import Data.Cardano (CardanoWasm, loadCardanoWasm)
+import Data.Cardano.Address as Address
 import Data.Cardano.Transaction as Transaction
 import Data.Cardano.TransactionWitnessSet as TransactionWitnessSet
-import Data.Either (either, Either(..))
+import Data.Either (Either(..), either, hush, note)
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
@@ -34,7 +35,7 @@ import Halogen.VDom.Driver (runUI)
 import Node.Buffer (Buffer)
 import Node.Buffer as Buffer
 import Node.Encoding as Encoding
-import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<<<), (<>), (=<<), (>>=))
+import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<$>), (<<<), (<>), (=<<), (>>=))
 
 main :: Effect Unit
 main =
@@ -115,10 +116,19 @@ handleAction = case _ of
     log ("Name.isEnabled: " <> show Nami.isEnabled)
 
     { cidM } <- H.get
-    walletAddresses <- H.liftAff $ Nami.getUsedAddresses
-    let waM = head walletAddresses
+    hexAddresses <- H.liftAff $ Nami.getUsedAddresses
+    let hexAddrM = head hexAddresses
+        hexAddrE = note "Fail" hexAddrM
+    log ("Hex address" <> show hexAddrM)
 
-    let dataM = cidM >>= (\cid -> waM >>= (\wa -> Just { cid, wa }))
+    hexAddr <- either (throwError <<< error) pure hexAddrE
+
+    addrE <- Address.fromBytes hexAddr
+
+    let addrM = hush $ Address.toBech32 <$> addrE
+    log ("Bech32 address" <> show addrM)
+
+    let dataM = cidM >>= (\cid -> addrM >>= (\wa -> Just { cid, wa }))
 
     case dataM of
       Just ({ cid, wa }) -> do
@@ -134,7 +144,7 @@ handleAction = case _ of
             log $ show err
           Right txId -> do
             log ("Submit success with txId " <> show txId)
-            H.liftAff $ postPendingTx (show txId) tokenName wa
+            H.liftAff $ postPendingTx (show txId) tokenName (show wa)
 
       Nothing -> do
         log ( "Something went wrong, either with wallet addresses or fetching contract instance" )
@@ -153,12 +163,13 @@ postPendingTx txHash tokenName walletAddress = do
                 # FO.insert "tokenName" (A.fromString tokenName)
                 # FO.insert "senderAddress" (A.fromString walletAddress)
 
-  resE <- AX.post ResponseFormat.json "/pending-tx"
-          (Just (RequestBody.json (A.fromObject payload)))
+  resE <- AX.post
+            ResponseFormat.json "/pending-tx"
+            (Just (RequestBody.json (A.fromObject payload)))
 
-  _ <- either (throwError <<< error <<< AX.printError) pure resE
-
-  log ("Posted pending tx" <> show txHash)
+  case resE of
+    Left e -> (throwError <<< error <<< AX.printError) e
+    Right res -> log (show $ A.toString res.body)
 
 fetchContractInstanceId
   :: forall m

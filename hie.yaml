@@ -15,14 +15,62 @@ cradle:
     - path: "src/backend/src/TxListener.hs"
       component: "backend:exe:backend"
 
-    - path: "src/contracts/src"
-      component: "lib:contracts"
+    - path: "src/backend/src/Contract/PAB.hs"
+      component: "backend:exe:backend"
 
-    - path: "src/contracts/app/token-pab.hs"
-      component: "contracts:exe:token-pab"
+    - path: "src/backend/src/Contract/SendContract.hs"
+      component: "backend:exe:backend"
 
-    - path: "src/contracts/app/mint-token.hs"
-      component: "contracts:exe:mint-token"
+    - path: "src/backend/src/Contract/Token/OffChain.hs"
+      component: "backend:exe:backend"
 
-    - path: "src/contracts/test"
-      component: "contracts:test:contracts-tests"
+    - path: "src/backend/src/Contract/Token/OnChain.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/backend/src/Contract/Utils.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/backend/src/MintToken.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/backend/app/token-pab.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/src/token-pab.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/app/Contract/PAB.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/app/Contract/SendContract.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/app/Contract/Token/OffChain.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/app/Contract/Token/OnChain.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/app/Contract/Utils.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/src/Contract/PAB.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/src/Contract/SendContract.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/src/Contract/Token/OffChain.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/src/Contract/Token/OnChain.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/src/Contract/Utils.hs"
+      component: "backend:exe:token-pab"
+
+    - path: "src/backend/test"
+      component: "backend:test:contracts-tests"
+
+    - path: "src/backend/src"
+      component: "backend:test:contracts-tests"
