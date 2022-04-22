@@ -44,9 +44,9 @@ main :: Effect Unit
 main =
   HA.runHalogenAff do
     body <- HA.awaitBody
-    log "Before loadCardanoWasm"
+    -- Introducing App monad so that we can load the `@emurgo/cardano-serialization-lib-browser`
+    -- library and use it through the Purescript `foreign` bridges created in `Data.Cardano` modules.
     cardanoWasm <- loadCardanoWasm
-    log "After loadCardanoWasm"
     _ <- runUI (H.hoist (runAppM cardanoWasm) (component cardanoWasm)) unit body
     pure unit
 
