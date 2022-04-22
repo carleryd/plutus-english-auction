@@ -10,13 +10,14 @@ import Control.Monad.Reader (class MonadAsk)
 import Data.Argonaut.Core as A
 import Data.Argonaut.Decode (JsonDecodeError, decodeJson)
 import Data.Array (head, last)
+import Data.String.CodePoints (length)
 import Data.ArrayBuffer.Typed as ArrayBuffer
 import Data.ArrayBuffer.Types (Uint8Array)
 import Data.Cardano (CardanoWasm, loadCardanoWasm)
 import Data.Cardano.Address as Address
 import Data.Cardano.Transaction as Transaction
 import Data.Cardano.TransactionWitnessSet as TransactionWitnessSet
-import Data.Either (Either(..), either, hush, note)
+import Data.Either (Either(..), either, hush)
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
@@ -35,7 +36,9 @@ import Halogen.VDom.Driver (runUI)
 import Node.Buffer (Buffer)
 import Node.Buffer as Buffer
 import Node.Encoding as Encoding
-import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<$>), (<<<), (<>), (=<<), (>>=))
+import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<$>), (<<<), (<=), (<>), (=<<), (>>=))
+import Web.HTML (window)
+import Web.HTML.Window (alert)
 
 main :: Effect Unit
 main =
@@ -112,42 +115,49 @@ handleAction = case _ of
     log
       ( "Found cid: " <> show cid)
     H.modify_ (_ { cidM = Just cid })
+
   GetNamiBalance tokenName -> do
-    log ("Name.isEnabled: " <> show Nami.isEnabled)
+    if (length tokenName <= 0) then do
+      eff <- liftEffect $ window >>= (alert "Token string is empty!")
+      pure eff
+    else do
+      log ("Name.isEnabled: " <> show Nami.isEnabled)
+      { cidM } <- H.get
 
-    { cidM } <- H.get
-    hexAddresses <- H.liftAff $ Nami.getUsedAddresses
-    let hexAddrM = head hexAddresses
-        hexAddrE = note "Fail" hexAddrM
-    log ("Hex address" <> show hexAddrM)
+      -- Nami returns a base16 encoded cbor-serialized address
+      -- We need to convert it into bech32 format (i.e. "addr...")
+      hexAddresses <- H.liftAff $ Nami.getUsedAddresses
+      let hexAddrM = head hexAddresses
 
-    hexAddr <- either (throwError <<< error) pure hexAddrE
+      log ("cbor hex address" <> show hexAddrM)
 
-    addrE <- Address.fromBytes hexAddr
+      hexAddr <- maybe ((throwError <<< error) "No used Nami addresses found") pure hexAddrM
 
-    let addrM = hush $ Address.toBech32 <$> addrE
-    log ("Bech32 address" <> show addrM)
+      addrE <- mkFromCbor hexAddr Address.fromBytes
 
-    let dataM = cidM >>= (\cid -> addrM >>= (\wa -> Just { cid, wa }))
+      let addrM = hush $ Address.toBech32 <$> addrE
+      log ("bech32 address" <> show addrM)
 
-    case dataM of
-      Just ({ cid, wa }) -> do
-        log ("Minting token: " <> tokenName)
-        partialCborTx <- H.liftAff $ fetchContractPartialTx cid
-        makePaymentRes <-
-          H.lift
-            $ try
-            $ (balanceSignAndSubmitTx partialCborTx)
+      let dataM = cidM >>= (\cid -> addrM >>= (\wa -> Just { cid, wa }))
 
-        case makePaymentRes of
-          Left err -> do
-            log $ show err
-          Right txId -> do
-            log ("Submit success with txId " <> show txId)
-            H.liftAff $ postPendingTx (show txId) tokenName (show wa)
+      case dataM of
+        Just ({ cid, wa }) -> do
+          log ("Minting token: " <> tokenName)
+          partialCborTx <- H.liftAff $ fetchContractPartialTx cid
+          makePaymentRes <-
+            H.lift
+              $ try
+              $ (balanceSignAndSubmitTx partialCborTx)
 
-      Nothing -> do
-        log ( "Something went wrong, either with wallet addresses or fetching contract instance" )
+          case makePaymentRes of
+            Left err -> do
+              log $ show err
+            Right txId -> do
+              log ("Submit success with txId " <> show txId)
+              H.liftAff $ postPendingTx (show txId) tokenName (show wa)
+
+        Nothing -> do
+          log ( "Something went wrong, either with wallet addresses or fetching contract instance" )
 
   SetTokenName tn -> do
     H.modify_ (_ { tokenName = tn })
@@ -244,36 +254,18 @@ balanceSignAndSubmitTx
   => String
   -> m String
 balanceSignAndSubmitTx partialTxCbor = do
-  log ("0 balanceSignAndSubmitTx")
   balancedTxCbor <- H.liftAff $ Nami.balanceTx partialTxCbor
-  log ("1 partialTxCbor:" <> show partialTxCbor)
+  log ("balanceSignAndSubmitTx partialTxCbor:" <> show partialTxCbor)
   balancedTxE <- mkFromCbor balancedTxCbor Transaction.fromBytes
-
-  log ("2")
   balancedTx <- either throwError pure balancedTxE
-
-  log ("3")
   txWitnessSetCborE <- H.liftAff $ attempt $ Nami.signTx balancedTxCbor Nothing
-
-  log ("4")
   txWitnessSetCbor <- either throwError pure txWitnessSetCborE
-
-  log ("5 txWitnessSetCbor:" <> show txWitnessSetCbor)
   txWitnessSetE <- mkFromCbor txWitnessSetCbor TransactionWitnessSet.fromBytes
-
-  log ("6")
   txWitnessSet <- either throwError pure txWitnessSetE
-
-  log ("7")
   finalTxE <- Transaction.new (Transaction.body balancedTx) txWitnessSet
-
-  log ("8")
   finalTx <- either throwError pure finalTxE
-
-  log ("9")
   finalTxCbor <- bytesToCbor $ Transaction.toBytes finalTx
-
-  log ("10 finalTxCbor:" <> show finalTxCbor)
+  log ("balanceSignAndSubmitTx finalTxCbor:" <> show finalTxCbor)
   Nami.submitTx finalTxCbor
 
 -- | Decode a CBOR string to the given type 'a'.

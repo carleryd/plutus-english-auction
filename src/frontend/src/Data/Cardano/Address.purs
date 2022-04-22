@@ -8,6 +8,7 @@ module Data.Cardano.Address
 import Prologue
 
 import Control.Monad.Reader (class MonadAsk, asks)
+import Data.ArrayBuffer.Types (Uint8Array)
 import Data.Cardano (CardanoWasm)
 import Effect.Aff (Error)
 
@@ -20,7 +21,7 @@ fromBech32 bech32 = asks \wasm -> fromBech32Impl wasm bech32 Left Right
 
 foreign import toBech32 :: Address -> String
 
-foreign import fromBytesImpl :: forall r. CardanoWasm -> String -> (Error -> r) -> (Address -> r) -> r
+foreign import fromBytesImpl :: forall r. CardanoWasm -> Uint8Array -> (Error -> r) -> (Address -> r) -> r
 
-fromBytes :: forall m. MonadAsk CardanoWasm m => String -> m (Either Error Address)
-fromBytes cborHex = asks \wasm -> fromBytesImpl wasm cborHex Left Right
+fromBytes :: forall m. MonadAsk CardanoWasm m => Uint8Array -> m (Either Error Address)
+fromBytes bytes = asks \wasm -> fromBytesImpl wasm bytes Left Right

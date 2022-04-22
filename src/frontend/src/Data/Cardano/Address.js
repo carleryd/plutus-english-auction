@@ -14,15 +14,9 @@ exports.fromBech32Impl =
 exports.toBech32 = (address) => address.to_bech32();
 
 exports.fromBytesImpl =
-  (cardanoWasm) => (hexAddr) => (onError) => (onSuccess) => {
-    console.log("[UPDATED 1] fromBytesImpl", hexAddr);
-    window.cardanoWasm2 = cardanoWasm;
-    window.hexAddr = hexAddr;
-    window.Buffer = Buffer;
+  (cardanoWasm) => (bytes) => (onError) => (onSuccess) => {
     try {
-      return onSuccess(
-        cardanoWasm.Address.from_bytes(Buffer.from(hexAddr, "hex"))
-      );
+      return onSuccess(cardanoWasm.Address.from_bytes(bytes));
     } catch (e) {
       return onError(e);
     }
