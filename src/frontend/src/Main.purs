@@ -40,6 +40,10 @@ import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<$>), (
 import Web.HTML (window)
 import Web.HTML.Window (alert)
 
+-- TODO: Pass in from env variable and change to hosted URL
+backendUrl :: String
+backendUrl = "http://192.168.1.103:8010"
+
 main :: Effect Unit
 main =
   HA.runHalogenAff do
@@ -192,7 +196,7 @@ fetchContractInstanceId wid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = ("http://localhost:8010/proxy/api/contract/instances/wallet/" <> wid)
+                { url = (backendUrl <> "/proxy/api/contract/instances/wallet/" <> wid)
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }
@@ -227,7 +231,7 @@ fetchContractPartialTx cid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = ("http://localhost:8010/proxy/api/contract/instance/" <> cid <> "/status")
+                { url = (backendUrl <> "/proxy/api/contract/instance/" <> cid <> "/status")
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }

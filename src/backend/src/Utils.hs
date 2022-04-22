@@ -24,21 +24,12 @@ import Blockfrost.Types.Cardano.Addresses (AddressUtxo)
 import Blockfrost.Types.Cardano.Blocks
 import Blockfrost.Types.Cardano.Transactions
 import Blockfrost.Types.Shared
-import Contract.PAB (TokenContracts (..))
-import Contract.Utils (contractActivationArgs, unsafeReadAddress, unsafeReadWalletId)
-import Control.Exception (throwIO)
 import qualified Control.Lens as Lens
-import Control.Monad (join, when)
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Bifunctor (first)
-import Data.Text (pack, unpack)
-import qualified Data.Text
+import Data.Text (pack)
 import GHC.Generics
-import Network.HTTP.Req
-import Plutus.PAB.Events.ContractInstanceState (PartiallyDecodedResponse (..))
-import Plutus.PAB.Webserver.Types (ContractInstanceClientState (..))
 import qualified System.Directory
-import Text.Printf (printf)
 
 w1Address :: Address
 w1Address =
@@ -73,40 +64,6 @@ data WalletBalances = WalletBalances
 instance ToJSON WalletBalances
 
 instance FromJSON WalletBalances
-
-cardanoServicesIP :: Data.Text.Text
-cardanoServicesIP = "localhost"
-
--- cardanoServicesIP = "192.168.1.103"
-
-getWalletInfo :: String -> IO String
-getWalletInfo _wid = do
-  let wid = unsafeReadWalletId _wid
-  v <-
-    runReq defaultHttpConfig $
-      req
-        GET
-        ( http cardanoServicesIP
-            /: "v2"
-            /: "wallets"
-            /: pack _wid
-        )
-        NoReqBody
-        jsonResponse
-        (port 8090)
-
-  let c = responseStatusCode v
-  when (c /= 200) $
-    throwIO $
-      userError $
-        printf
-          "ERROR: %d\n"
-          c
-
-  let x :: ContractInstanceClientState TokenContracts
-      x = responseBody v
-
-  return "HELLO"
 
 getBlockConfirmations :: TxHash -> IO (Either BlockfrostError Integer)
 getBlockConfirmations txId = do
