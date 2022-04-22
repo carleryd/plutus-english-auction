@@ -17,7 +17,7 @@ walletServerConfig:
     baseUrl: http://localhost:8090
 
 nodeServerConfig:
-  pscSocketPath: /Users/jackjazz/Programming/crypto/plutus-apps-lc/plutus-pab/test-node/testnet/node.sock
+  pscSocketPath: /home/chryd/Programming/crypto/plutus-apps/plutus-pab/test-node/testnet/node.sock
   pscBaseUrl: "localhost"
   pscKeptBlocks: 2160
   pscNetworkId: "1097911063" # Testnet network ID (main net = empty string)
@@ -52,6 +52,6 @@ developmentOptions:
   pabResumeFrom:
     # "tag" : "PointAtGenesis" }
       { "tag" : "Point"
-      , "pointBlockId" : "2bc7a51571c5236ebef5f1a8b9b300ae9487f3610cd7c13cf14668675b9cb1e9"
-      , "pointSlot" : {"getSlot" : 56088801}
+      , "pointBlockId" : "a8756c78e3ee655fcbf07db340c5b451679a6712eac3a0bc7cebed2da99e01ae"
+      , "pointSlot" : {"getSlot" : 56266383}
       }
