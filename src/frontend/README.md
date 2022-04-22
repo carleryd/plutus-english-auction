@@ -1,15 +1,10 @@
-# 🚀 Welcome to your new awesome project!
+# Setup
+Temporary measure to give us exposure to non-public api
 
-This project has been created using **webpack-cli**, you can now run
+$ git clone --branch 2.3.6 https://github.com/Berry-Pool/nami-wallet.git lib/nami-wallet
 
-```
-npm run build
-```
+Then install `purescript` and `spago` and run
 
-or
+$ yarn && yarn build:spago && yarn build:webpack
 
-```
-yarn build
-```
-
-to bundle your application
+Output will be generated in backend's assets, so now you can run the server!

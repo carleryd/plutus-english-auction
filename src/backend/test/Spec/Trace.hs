@@ -27,7 +27,6 @@ import Ledger.Value as Value
 import Plutus.Contract as Contract
 import Plutus.Contract.Test
 import Plutus.Contract.Test.Coverage
-import Plutus.Contract.Test.Coverage.ReportCoverage (writeCoverageReport)
 import Plutus.Trace.Emulator as Emulator
 import PlutusTx.Prelude hiding (Semigroup (..), check, unless)
 import System.Exit

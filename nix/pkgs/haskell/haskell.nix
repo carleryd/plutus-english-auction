@@ -22,7 +22,7 @@ let
     # If using materialization, be sure to disable it when source-repo-override is set or it won't take effect.
 
     sha256map = {
-      "https://github.com/locallycompact/plutus-apps.git"."9178afcc75fe9b77dfd7dafbe9c159fd09677472" = "0xwr6r4hd5208v772mvrl3820ja9vv1xmzvnh47pi59q6yx9wn10";
+      "https://github.com/carleryd/plutus-apps.git"."57a0979a41224b8f7f50bdb8c20f1d05e45620b0" = "19f50nnp7a57hxa58bnbx03myh7wxhrdbgl9il4a4yjgh3dwaycz";
       "https://github.com/input-output-hk/ekg-forward"."297cd9db5074339a2fb2e5ae7d0780debb670c63" = "1zcwry3y5rmd9lgxy89wsb3k4kpffqji35dc7ghzbz603y1gy24g";
       "https://github.com/input-output-hk/cardano-addresses"."71006f9eb956b0004022e80aadd4ad50d837b621" = "11dl3fmq7ry5wdmz8kw07ji8yvrxnrsf7pgilw5q9mi4aqyvnaqk";
       "https://github.com/input-output-hk/cardano-base"."41545ba3ac6b3095966316a99883d678b5ab8da8" = "0icq9y3nnl42fz536da84414av36g37894qnyw4rk3qkalksqwir";

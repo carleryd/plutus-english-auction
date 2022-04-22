@@ -61,7 +61,7 @@ package cardano-wallet-core-integration
 
 source-repository-package
   type: git
-  location: https://github.com/locallycompact/plutus-apps.git
+  location: https://github.com/carleryd/plutus-apps.git
   subdir:
     freer-extras
     playground-common
@@ -74,7 +74,7 @@ source-repository-package
     plutus-pab
     plutus-use-cases
     quickcheck-dynamic
-  tag: 9178afcc75fe9b77dfd7dafbe9c159fd09677472
+  tag: 57a0979a41224b8f7f50bdb8c20f1d05e45620b0
 
 source-repository-package
   type: git
