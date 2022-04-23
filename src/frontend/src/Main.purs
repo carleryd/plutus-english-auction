@@ -62,7 +62,7 @@ type State
 
 data Action
   = Initialize
-  | GetNamiBalance String
+  | MintToken String
   | SetTokenName String
 
 component :: forall query input output. CardanoWasm -> H.Component query input output AppM
@@ -95,7 +95,7 @@ render state = do
         , HE.onValueInput SetTokenName
         ]
     , HH.button
-        [ HE.onClick \_ -> GetNamiBalance state.tokenName ]
+        [ HE.onClick \_ -> MintToken state.tokenName ]
         [ HH.text "Mint NFT for 5 ada" ]
     ]
 
@@ -116,11 +116,13 @@ handleAction = case _ of
     -- Wallet 1 id
     let wid = "8c8c14997236e9372520d26666fb581e9b639ccb"
     cid <- H.liftAff $ fetchContractInstanceId wid
+    -- Trigger popup for user to accept enabling of Nami integration
+    _ <- H.liftAff $ Nami.enable
     log
       ( "Found cid: " <> show cid)
     H.modify_ (_ { cidM = Just cid })
 
-  GetNamiBalance tokenName -> do
+  MintToken tokenName -> do
     if (length tokenName <= 0) then do
       eff <- liftEffect $ window >>= (alert "Token string is empty!")
       pure eff
