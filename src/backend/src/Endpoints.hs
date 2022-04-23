@@ -57,7 +57,7 @@ postPendingTx = do
         tn = filter (/= '\"') (tokenName res)
         address = unsafeReadAddress $ filter (/= '\"') (senderAddress res)
     liftIO $ txListener txh tn address
-    json ("hello" :: String)
+    json ("SUCCESS: /pending-tx" :: String)
 
 startServer :: IO ()
 startServer = do
