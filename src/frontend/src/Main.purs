@@ -42,7 +42,7 @@ import Web.HTML.Window (alert)
 
 -- TODO: Pass in from env variable and change to hosted URL
 backendUrl :: String
-backendUrl = "http://192.168.1.103:8010"
+backendUrl = "http://178.79.190.92:8010"
 
 main :: Effect Unit
 main =
