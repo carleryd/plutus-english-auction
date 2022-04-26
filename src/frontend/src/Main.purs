@@ -36,13 +36,11 @@ import Halogen.VDom.Driver (runUI)
 import Node.Buffer (Buffer)
 import Node.Buffer as Buffer
 import Node.Encoding as Encoding
+import Env (pabProxyUrl)
+
 import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<$>), (<<<), (<=), (<>), (=<<), (>>=))
 import Web.HTML (window)
 import Web.HTML.Window (alert)
-
--- TODO: Pass in from env variable and change to hosted URL
-backendUrl :: String
-backendUrl = "http://178.79.190.92:8010"
 
 main :: Effect Unit
 main =
@@ -120,6 +118,7 @@ handleAction = case _ of
     _ <- H.liftAff $ Nami.enable
     log
       ( "Found cid: " <> show cid)
+
     H.modify_ (_ { cidM = Just cid })
 
   MintToken tokenName -> do
@@ -198,7 +197,7 @@ fetchContractInstanceId wid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = (backendUrl <> "/proxy/api/contract/instances/wallet/" <> wid)
+                { url = (pabProxyUrl <> "/proxy/api/contract/instances/wallet/" <> wid)
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }
@@ -233,7 +232,7 @@ fetchContractPartialTx cid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = (backendUrl <> "/proxy/api/contract/instance/" <> cid <> "/status")
+                { url = (pabProxyUrl <> "/proxy/api/contract/instance/" <> cid <> "/status")
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }

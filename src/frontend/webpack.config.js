@@ -1,7 +1,9 @@
-// Generated using webpack-cli https://github.com/webpack/webpack-cli
+// Sets variables in "./env" on "process.env" global variable
+require("dotenv").config();
 
 const path = require("path");
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
+const webpack = require("webpack");
 
 const isProduction = process.env.NODE_ENV == "production";
 
@@ -14,6 +16,11 @@ const config = {
     path: path.resolve(__dirname, "../backend/src/assets/frontend-dist"),
   },
   plugins: [
+    new webpack.DefinePlugin({
+      "process.env": {
+        PAB_PROXY_URL: JSON.stringify(process.env.PAB_PROXY_URL),
+      },
+    }),
     // allows to use modules from NodeJS like `Buffer` or `Util`.
     new NodePolyfillPlugin(),
   ],
