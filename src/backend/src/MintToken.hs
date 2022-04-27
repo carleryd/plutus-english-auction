@@ -52,7 +52,7 @@ mintStatic = do
   cid <- mintToken wid' tp
   printf "minted tokens, contract instance id: %s\n" $ show cid
 
-mintNFT :: String -> Address -> IO ()
+mintNFT :: String -> Address -> IO ContractInstanceId
 mintNFT tokenName sender = do
   let amt' = "1"
       wid' = walletId
@@ -67,6 +67,7 @@ mintNFT tokenName sender = do
   printf "minting token using wallet id %s with parameters %s\n" (show wid') $ show tp
   cid <- mintToken wid' tp
   printf "minted tokens, contract instance id: %s\n" $ show cid
+  return cid
 
 mintToken :: WalletId -> TokenParams -> IO ContractInstanceId
 mintToken wid tp = do

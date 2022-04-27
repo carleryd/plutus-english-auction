@@ -11,7 +11,6 @@ import Contract.Utils (unsafeReadAddress)
 import Control.Monad.IO.Class
 import Data.Aeson hiding (json)
 import Data.Text (pack)
-import qualified Data.Text.Lazy as LazyText
 import GHC.Generics (Generic)
 import Network.Wai.Middleware.Cors
 import TxListener (txListener)
@@ -56,8 +55,10 @@ postPendingTx = do
     let txh = (TxHash . pack . filter (/= '\"')) (txHash res)
         tn = filter (/= '\"') (tokenName res)
         address = unsafeReadAddress $ filter (/= '\"') (senderAddress res)
-    liftIO $ txListener txh tn address
-    json ("SUCCESS: /pending-tx" :: String)
+    txHashE <- liftIO $ txListener txh tn address
+    case txHashE of
+      Left e -> json ("/pending-tx error: " <> show e)
+      Right a -> json ("/pending-tx success: " <> show a)
 
 startServer :: IO ()
 startServer = do

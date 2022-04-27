@@ -10,7 +10,6 @@ import Control.Monad.Reader (class MonadAsk)
 import Data.Argonaut.Core as A
 import Data.Argonaut.Decode (JsonDecodeError, decodeJson)
 import Data.Array (head, last)
-import Data.String.CodePoints (length)
 import Data.ArrayBuffer.Typed as ArrayBuffer
 import Data.ArrayBuffer.Types (Uint8Array)
 import Data.Cardano (CardanoWasm, loadCardanoWasm)
@@ -20,12 +19,14 @@ import Data.Cardano.TransactionWitnessSet as TransactionWitnessSet
 import Data.Either (Either(..), either, hush)
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..), maybe)
+import Data.String.CodePoints (length)
 import Effect (Effect)
 import Effect.Aff (Aff, attempt, throwError)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
+import Env (pabProxyUrl)
 import Foreign.Object as FO
 import Halogen as H
 import Halogen.Aff as HA
@@ -36,8 +37,6 @@ import Halogen.VDom.Driver (runUI)
 import Node.Buffer (Buffer)
 import Node.Buffer as Buffer
 import Node.Encoding as Encoding
-import Env (pabProxyUrl)
-
 import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<$>), (<<<), (<=), (<>), (=<<), (>>=))
 import Web.HTML (window)
 import Web.HTML.Window (alert)
@@ -52,10 +51,16 @@ main =
     _ <- runUI (H.hoist (runAppM cardanoWasm) (component cardanoWasm)) unit body
     pure unit
 
+data RemoteData a e = Success a
+                    | Error e
+                    | Loading
+                    | NotAsked
+
 type State
   = { cardanoWasm :: CardanoWasm
     , tokenName :: String
     , cidM :: Maybe String
+    , pendingTx :: RemoteData (Maybe String) Error
     }
 
 data Action
@@ -81,7 +86,19 @@ initialState cardanoWasm = do
   { cardanoWasm
   , tokenName: ""
   , cidM: Nothing
+  , pendingTx: NotAsked
   }
+
+statusField :: forall w i. RemoteData (Maybe String) Error -> HH.HTML w i
+statusField rd =
+  let
+    statusText = case rd of
+      Error e -> "Error minting token: " <> show e
+      Success txh -> "View tx hash: " <> show txh
+      Loading -> "Loading"
+      NotAsked -> "Not asked"
+  in
+    HH.div_ [ HH.text statusText ]
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
@@ -95,6 +112,7 @@ render state = do
     , HH.button
         [ HE.onClick \_ -> MintToken state.tokenName ]
         [ HH.text "Mint NFT for 5 ada" ]
+    , statusField state.pendingTx
     ]
 
 type WalletBalances
@@ -148,6 +166,9 @@ handleAction = case _ of
       case dataM of
         Just ({ cid, wa }) -> do
           log ("Minting token: " <> tokenName)
+
+          H.modify_ (_ { pendingTx = Loading } )
+
           partialCborTx <- H.liftAff $ fetchContractPartialTx cid
           makePaymentRes <-
             H.lift
@@ -155,11 +176,17 @@ handleAction = case _ of
               $ (balanceSignAndSubmitTx partialCborTx)
 
           case makePaymentRes of
-            Left err -> do
-              log $ show err
+            Left e -> do
+              H.modify_ (_ { pendingTx = Error e } )
+              log $ show e
             Right txId -> do
-              log ("Submit success with txId " <> show txId)
-              H.liftAff $ postPendingTx (show txId) tokenName (show wa)
+              resE <- H.liftAff $ postPendingTx (show txId) tokenName (show wa)
+              case resE of
+                Left e -> do
+                  log ("ERROR: " <> show e)
+                  H.modify_ (_ { pendingTx = Error e } )
+                Right res -> do
+                  H.modify_ (_ { pendingTx = Success $ A.toString res } )
 
         Nothing -> do
           log ( "Something went wrong, either with wallet addresses or fetching contract instance" )
@@ -170,7 +197,7 @@ handleAction = case _ of
 newtype PendingTxData =
   PendingTxData { txHash :: String }
 
-postPendingTx :: String -> String -> String -> Aff Unit
+postPendingTx :: String -> String -> String -> Aff (Either Error A.Json)
 postPendingTx txHash tokenName walletAddress = do
   log ("postPendingTx: " <> txHash)
   let payload = FO.empty
@@ -183,8 +210,8 @@ postPendingTx txHash tokenName walletAddress = do
             (Just (RequestBody.json (A.fromObject payload)))
 
   case resE of
-    Left e -> (throwError <<< error <<< AX.printError) e
-    Right res -> log (show $ A.toString res.body)
+    Left e -> (pure <<< Left <<< error <<< AX.printError) e
+    Right res -> pure $ Right res.body
 
 fetchContractInstanceId
   :: forall m
