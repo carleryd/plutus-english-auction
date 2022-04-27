@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cabal run -- token-pab \
+cabal run -- pab-server \
   --config testnet/pab-config.yml migrate

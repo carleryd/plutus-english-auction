@@ -3,7 +3,37 @@ cradle:
     - path: "src"
       component: "lib:backend"
 
+    - path: "app/Main.hs"
+      component: "backend:exe:backend"
+
     - path: "src/Main.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/Utils.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/Endpoints.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/TxListener.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/Contract/PAB.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/Contract/SendContract.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/Contract/Token/OffChain.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/Contract/Token/OnChain.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/Contract/Utils.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/MintToken.hs"
       component: "backend:exe:backend"
 
     - path: "src/Utils.hs"
@@ -14,3 +44,63 @@ cradle:
 
     - path: "src/TxListener.hs"
       component: "backend:exe:backend"
+
+    - path: "src/Contract/PAB.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/Contract/SendContract.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/Contract/Token/OffChain.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/Contract/Token/OnChain.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/Contract/Utils.hs"
+      component: "backend:exe:backend"
+
+    - path: "src/MintToken.hs"
+      component: "backend:exe:backend"
+
+    - path: "app/pab-server.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "src/pab-server.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "app/Contract/PAB.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "app/Contract/SendContract.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "app/Contract/Token/OffChain.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "app/Contract/Token/OnChain.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "app/Contract/Utils.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "src/Contract/PAB.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "src/Contract/SendContract.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "src/Contract/Token/OffChain.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "src/Contract/Token/OnChain.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "src/Contract/Utils.hs"
+      component: "backend:exe:pab-server"
+
+    - path: "test"
+      component: "backend:test:contracts-tests"
+
+    - path: "src"
+      component: "backend:test:contracts-tests"

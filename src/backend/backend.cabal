@@ -24,8 +24,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     Utils
                      , Endpoints
-                     , MintToken
                      , TxListener
+                     , Contracts
                      , Contract.EnglishAuction
                      , Contract.PAB
                      , Contract.SendContract
@@ -73,18 +73,19 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
-executable backend
-  main-is:             Main.hs
-  hs-source-dirs:      src
+executable rest-server
+  main-is:             rest-server.hs
+  hs-source-dirs:      app
+                     , src
   other-modules:       Utils
                      , Endpoints
                      , TxListener
+                     , Contracts
                      , Contract.PAB
                      , Contract.SendContract
                      , Contract.Token.OffChain
                      , Contract.Token.OnChain
                      , Contract.Utils
-                     , MintToken
   build-depends:       base ^>=4.14.1.0
                      , blockfrost-client >= 0.1.0.0
                      , blockfrost-api >= 0.1.0.0
@@ -117,8 +118,8 @@ executable backend
   default-language:    Haskell2010
   ghc-options:         -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
-executable token-pab
-  main-is:             token-pab.hs
+executable pab-server
+  main-is:             pab-server.hs
   hs-source-dirs:      app
                      , src
   other-modules:       Contract.PAB

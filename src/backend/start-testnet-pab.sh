@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cabal run -- token-pab \
+cabal run -- pab-server \
   --config testnet/pab-config.yml webserver \
   --passphrase kakmonster123

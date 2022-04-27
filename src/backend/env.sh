@@ -1,5 +1,0 @@
-#!/bin/bash
-
-export MAGIC='--testnet-magic 1097911063'
-export ADDRESS=addr_test1qplfk3cw70jwlq7gya2m0mrx6fxujrf6gm9v9c556j75v5k5qqhj89csyv7y7543l24hz8t00rrgyct2p5gv3udgtpxqy637fp
-export WALLETID=8c8c14997236e9372520d26666fb581e9b639ccb
