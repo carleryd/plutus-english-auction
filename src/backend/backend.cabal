@@ -24,7 +24,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Utils
                      , Endpoints
-                     , TxListener
+                     , Minter
                      , Contracts
                      , Contract.EnglishAuction
                      , Contract.PAB
@@ -79,7 +79,7 @@ executable rest-server
                      , src
   other-modules:       Utils
                      , Endpoints
-                     , TxListener
+                     , Minter
                      , Contracts
                      , Contract.PAB
                      , Contract.SendContract

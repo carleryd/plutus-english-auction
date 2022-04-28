@@ -2,10 +2,9 @@
 
 module Main where
 
-import Data.Either.Extras (unsafeFromEither)
 import Endpoints
+import Minter (mintOnConfirmation)
 import Network.Wai.Middleware.Cors
-import TxListener (txListener)
 import Utils
 import Web.Scotty
 
@@ -16,7 +15,7 @@ startServer = do
   let endpoints =
         baseEndpoints
           <> balancesEndpoint wb
-          <> postPendingTx txListener
+          <> postPendingTx mintOnConfirmation
 
   scotty 3000 (middleware simpleCors <> endpoints)
 

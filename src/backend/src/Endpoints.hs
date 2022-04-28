@@ -5,7 +5,7 @@
 module Endpoints
   ( getCurrentSlot,
     checkContractStatus,
-    fetchTxs,
+    fetchMintTx,
     homeEndpoint,
     baseEndpoints,
     balancesEndpoint,
@@ -13,7 +13,6 @@ module Endpoints
   )
 where
 
-import Blockfrost.Types.Shared hiding (Address, Slot)
 import Contract.Utils (unsafeReadAddress, unsafeReadWalletId)
 import Control.Monad.IO.Class
 import Data.Aeson hiding (json)
@@ -60,12 +59,12 @@ instance ToJSON PendingTxResponse
 
 instance FromJSON PendingTxResponse
 
-postPendingTx :: (TxHash -> String -> Address -> IO (Either String TxHash)) -> ScottyM ()
+postPendingTx :: (String -> String -> Address -> IO (Either String String)) -> ScottyM ()
 postPendingTx createNFT = do
   post "/pending-tx" $ do
     res <- jsonData :: ActionM PendingTxResponse
     -- TODO: Implement proper parsing of JSON payload
-    let txh = (TxHash . pack . filter (/= '\"')) (txHash res)
+    let txh = filter (/= '\"') (txHash res)
         tn = filter (/= '\"') (tokenName res)
         address = unsafeReadAddress $ filter (/= '\"') (senderAddress res)
     txHashE <- liftIO (createNFT txh tn address)
@@ -160,9 +159,9 @@ instance ToJSON Transaction
 
 -- | Fetch a few recent txs, should get at least one, the one we just sent when minting.
 -- | To get most recent one: sort descending and get the head
-fetchTxs :: String -> WalletId -> IO (Either String TxHash)
-fetchTxs fromTimestamp wid = do
-  let params =
+fetchMintTx :: String -> WalletId -> IO (Either String String)
+fetchMintTx fromTimestamp wid = do
+  let p =
         "start" =: pack fromTimestamp
           <> "order" =: ("descending" :: Text)
   v <-
@@ -172,7 +171,7 @@ fetchTxs fromTimestamp wid = do
         (http "127.0.0.1" /: "v2" /: "wallets" /: pack (show wid) /: "transactions")
         NoReqBody
         (jsonResponse :: Proxy (JsonResponse [Transaction]))
-        (port 8090 <> params)
+        (port 8090 <> p)
   let c = responseStatusCode v
   if c == 200
     then do
@@ -180,6 +179,6 @@ fetchTxs fromTimestamp wid = do
           txE =
             if null newTxs
               then Left "Received no tx"
-              else Right $ TxHash $ pack ((id . head) newTxs)
+              else Right $ (id . head) newTxs
       return txE
     else return $ Left ("ERROR: " ++ show c)

@@ -2,37 +2,40 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module TxListener where
+module Minter where
 
 import Blockfrost.Types.Shared hiding (Address, Slot, unSlot)
 import Contracts (mintNFT)
+import Data.Text (pack)
 import Data.Time.Clock.POSIX
 import Data.Time.Format.ISO8601 (iso8601Show)
-import Endpoints
+import Endpoints (checkContractStatus, fetchMintTx)
 import GHC.Conc (threadDelay)
 import Ledger.Address (Address)
 import Text.Printf (printf)
 import Utils (getBlockConfirmations)
 import Prelude hiding (id)
 
-txListener :: TxHash -> String -> Address -> IO (Either String TxHash)
-txListener txHash tokenName sender = do
+-- | Check if user has paid us the cost of minting their NFT.
+-- | If so, mint and send user the hash of that transaction.
+mintOnConfirmation :: String -> String -> Address -> IO (Either String String)
+mintOnConfirmation txHash tokenName sender = do
   printf "Listening to block confirmations on transaction %s\n" (show txHash)
 
-  go txHash 30
+  mintAttempt txHash 30
   where
-    go :: TxHash -> Integer -> IO (Either String TxHash)
-    go txh tries = do
+    mintAttempt :: String -> Integer -> IO (Either String String)
+    mintAttempt txh tries = do
       -- Amount of required block confirmations we require before we mint and send NFT
       let goal = 1
-      confirmationsE <- getBlockConfirmations txh
+      confirmationsE <- getBlockConfirmations $ (TxHash . pack) txh
       case confirmationsE of
         Left _ -> do
           if tries > 0
             then do
               printf "Attempting to fetch block confirmations, retrying %s more times...\n" (show tries)
               threadDelay 4_000_000
-              go txh (tries - 1)
+              mintAttempt txh (tries - 1)
             else do
               printf "Error fetching block confirmations, stopping.\n" (show tries)
               return $ Left "Error fetching block confirmations"
@@ -51,28 +54,27 @@ txListener txHash tokenName sender = do
                 Left e -> do
                   return $ Left ("Error confirming minting status: " <> show e)
                 Right walletId -> do
-                  let f = fetchTxs timeNow walletId
-                      attempt :: Integer -> IO (Either String TxHash) -> IO (Either String TxHash)
-                      attempt n io = do
+                  let fetchAttempt :: Integer -> IO (Either String String) -> IO (Either String String)
+                      fetchAttempt n io = do
                         resE <- io
                         case resE of
                           Left e -> do
                             if n > 0
                               then do
-                                printf "Attempt failed, %d left, error: %s\n" n (show e)
+                                printf "fetchAttempt failed, %d left, error: %s\n" n (show e)
                                 threadDelay 5_000_000
-                                attempt (n - 1) io
+                                fetchAttempt (n - 1) io
                               else do
                                 io
                           Right a -> return $ Right a
 
-                  txHashE <- attempt 20 f
+                  txHashE <- fetchAttempt 20 $ fetchMintTx timeNow walletId
                   case txHashE of
                     Left e -> do
-                      printf ("Error" <> show e)
+                      printf ("Error" <> e)
                       return $ Left e
                     Right a -> do
-                      printf ("Success, tx hash: " <> show a)
+                      printf ("Success, tx hash: " <> a)
                       return $ Right a
             else do
               printf
@@ -80,4 +82,4 @@ txListener txHash tokenName sender = do
                 (show confirmations)
                 (show goal)
               threadDelay 2_000_000
-              go txh tries
+              mintAttempt txh tries

@@ -3,65 +3,65 @@ cradle:
     - path: "src"
       component: "lib:backend"
 
-    - path: "app/Main.hs"
-      component: "backend:exe:backend"
+    - path: "app/rest-server.hs"
+      component: "backend:exe:rest-server"
 
-    - path: "src/Main.hs"
-      component: "backend:exe:backend"
+    - path: "src/rest-server.hs"
+      component: "backend:exe:rest-server"
 
     - path: "app/Utils.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "app/Endpoints.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
-    - path: "app/TxListener.hs"
-      component: "backend:exe:backend"
+    - path: "app/Minter.hs"
+      component: "backend:exe:rest-server"
+
+    - path: "app/Contracts.hs"
+      component: "backend:exe:rest-server"
 
     - path: "app/Contract/PAB.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "app/Contract/SendContract.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "app/Contract/Token/OffChain.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "app/Contract/Token/OnChain.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "app/Contract/Utils.hs"
-      component: "backend:exe:backend"
-
-    - path: "app/MintToken.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "src/Utils.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "src/Endpoints.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
-    - path: "src/TxListener.hs"
-      component: "backend:exe:backend"
+    - path: "src/Minter.hs"
+      component: "backend:exe:rest-server"
+
+    - path: "src/Contracts.hs"
+      component: "backend:exe:rest-server"
 
     - path: "src/Contract/PAB.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "src/Contract/SendContract.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "src/Contract/Token/OffChain.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "src/Contract/Token/OnChain.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "src/Contract/Utils.hs"
-      component: "backend:exe:backend"
-
-    - path: "src/MintToken.hs"
-      component: "backend:exe:backend"
+      component: "backend:exe:rest-server"
 
     - path: "app/pab-server.hs"
       component: "backend:exe:pab-server"
