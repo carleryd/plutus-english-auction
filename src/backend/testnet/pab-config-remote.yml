@@ -15,7 +15,7 @@ walletServerConfig:
   tag: RemoteWalletConfig
 
 nodeServerConfig:
-  pscSocketPath: /Users/jackjazz/Programming/crypto/plutus-apps-lc/plutus-pab/test-node/testnet/node.sock
+  pscSocketPath: /root/plutus-apps/plutus-pab/test-node/testnet/node.sock
   pscBaseUrl: "localhost"
   pscKeptBlocks: 2160
   pscNetworkId: "1097911063" # Testnet network ID (main net = empty string)
