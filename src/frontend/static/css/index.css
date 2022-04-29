@@ -41,7 +41,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 20vh;
+  margin-top: 18vh;
 }
 
 .container-inner {
@@ -67,7 +67,7 @@ body {
   flex-direction: row;
   width: 400px;
   height: inherit;
-  flex: 6;
+  flex: 8;
   justify-content: flex-end;
   align-items: center;
 }
@@ -75,7 +75,7 @@ body {
 .status-box > .loading-description {
   display: flex;
   align-items: center;
-  flex: 11;
+  flex: 14;
 }
 
 .loading-description > p {
