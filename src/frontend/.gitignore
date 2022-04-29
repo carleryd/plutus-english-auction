@@ -3,3 +3,4 @@ output
 dist
 \.spago
 \.psci_modules
+yarn-error.log
