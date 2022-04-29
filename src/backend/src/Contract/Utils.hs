@@ -16,6 +16,7 @@ module Contract.Utils
     cidToString,
     writeMintingPolicy,
     unsafeTokenNameToHex,
+    unsafeStringToHex,
   )
 where
 
@@ -134,3 +135,6 @@ unsafeTokenNameToHex :: TokenName -> String
 unsafeTokenNameToHex = BS8.unpack . serialiseToRawBytesHex . fromJust . deserialiseFromRawBytes AsAssetName . getByteString . unTokenName
   where
     getByteString (BuiltinByteString bs) = bs
+
+unsafeStringToHex :: String -> String
+unsafeStringToHex = BS8.unpack . serialiseToRawBytesHex . fromJust . deserialiseFromRawBytes AsAssetName . BS8.pack

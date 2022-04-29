@@ -9,7 +9,7 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow, try)
 import Control.Monad.Reader (class MonadAsk)
 import Data.Argonaut.Core as A
 import Data.Argonaut.Decode (JsonDecodeError, decodeJson)
-import Data.Array (head, last)
+import Data.Array (fromFoldable, head, last)
 import Data.ArrayBuffer.Typed as ArrayBuffer
 import Data.ArrayBuffer.Types (Uint8Array)
 import Data.Cardano (CardanoWasm, loadCardanoWasm)
@@ -18,8 +18,10 @@ import Data.Cardano.Transaction as Transaction
 import Data.Cardano.TransactionWitnessSet as TransactionWitnessSet
 import Data.Either (Either(..), either, hush)
 import Data.HTTP.Method (Method(..))
+import Data.List.Lazy (replicate)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String.CodePoints (length)
+import Data.String.Common (toUpper)
 import Effect (Effect)
 import Effect.Aff (Aff, attempt, throwError)
 import Effect.Aff.Class (class MonadAff)
@@ -41,6 +43,11 @@ import Prelude (Unit, bind, const, discard, pure, show, unit, (#), ($), (<$>), (
 import Web.HTML (window)
 import Web.HTML.Window (alert)
 
+-- | I get annoyed writing `class_ $ ClassName "..."` over and over again. This small utility saves
+-- | a few characters all over our HTML.
+css :: forall r i. String -> HH.IProp (class :: String | r) i
+css = HP.class_ <<< HH.ClassName
+
 main :: Effect Unit
 main =
   HA.runHalogenAff do
@@ -51,16 +58,17 @@ main =
     _ <- runUI (H.hoist (runAppM cardanoWasm) (component cardanoWasm)) unit body
     pure unit
 
-data RemoteData a e = Success a
-                    | Error e
+data RemoteData e a = NotAsked
                     | Loading
-                    | NotAsked
+                    | Failure e
+                    | Success a
 
 type State
   = { cardanoWasm :: CardanoWasm
     , tokenName :: String
     , cidM :: Maybe String
-    , pendingTx :: RemoteData (Maybe String) Error
+    , paymentRD :: RemoteData Error String
+    , mintingRD :: RemoteData Error String
     }
 
 data Action
@@ -86,33 +94,114 @@ initialState cardanoWasm = do
   { cardanoWasm
   , tokenName: ""
   , cidM: Nothing
-  , pendingTx: NotAsked
+  , paymentRD: NotAsked
+  , mintingRD: NotAsked
   }
 
-statusField :: forall w i. RemoteData (Maybe String) Error -> HH.HTML w i
-statusField rd =
+spinner :: forall w i. HH.HTML w i
+spinner =
+  HH.div
+    [ css "lds-roller"
+    ]
+    (fromFoldable $ replicate 8 (HH.div_ []))
+
+coinLoader :: forall w i. HH.HTML w i
+coinLoader =
+  HH.img
+    [ css "coin-loader"
+    , HP.src "/assets/images/flying-money.gif"
+    ]
+
+doneImage :: forall w i. HH.HTML w i
+doneImage =
+  HH.img
+    [ css "done-image"
+    , HP.src "/assets/images/check-mark.webp"
+    ]
+
+githubLink :: forall w i. HH.HTML w i
+githubLink =
+  HH.a
+    [ HP.href "https://github.com/carleryd/plutus-english-auction"
+    , HP.target "_blank" ]
+    [ HH.img
+      [ css "github-link"
+      , HP.src "/assets/images/github-mark.png"
+      ]
+    ]
+
+statusBox :: forall w i. RemoteData Error String -> HH.HTML w i -> HH.HTML w i
+statusBox rd elem =
+  HH.div
+    [ css "status-box" ]
+    [ HH.div
+      [ css "loading-container" ]
+      [ case rd of
+           NotAsked -> HH.text ""
+           Loading -> coinLoader
+           Failure _ -> HH.text ""
+           Success _ -> doneImage
+        ]
+    , HH.span
+      [ css "loading-description" ]
+      [ HH.p_ [ elem ] ]
+    ]
+
+statusContainer :: forall w i. RemoteData Error String -> RemoteData Error String -> HH.HTML w i
+statusContainer paymentRD mintingRD =
   let
-    statusText = case rd of
-      Error e -> "Error minting token: " <> show e
-      Success txh -> "View tx hash: " <> show txh
-      Loading -> "Loading"
-      NotAsked -> "Not asked"
+    paymentElem = case paymentRD of
+      NotAsked -> HH.text ""
+      Loading -> HH.text "Sending payment..."
+      Failure _ -> HH.text "Error with paying DApp to mint NFT"
+      Success _wid -> HH.text "Wallet has received payment!"
+    mintingElem = case mintingRD of
+      NotAsked -> HH.text ""
+      Loading -> HH.text "NFT is being minted..."
+      Failure _ -> HH.text "Error minting token"
+      Success txh -> HH.div [ css "mint-success-container" ]
+                     [ HH.p_ [ HH.text "NFT has been minted! " ]
+                     , HH.p_
+                       [ HH.text "Check your wallet or "
+                       , HH.a
+                        [ HP.href $ "https://explorer.cardano-testnet.iohkdev.io/en/transaction?id=" <> txh
+                        , HP.target "_blank"
+                        , css "mint-success-link"
+                        ]
+                        [ HH.text "view in explorer"
+                        ]
+                      ]
+                    ]
   in
-    HH.div_ [ HH.text statusText ]
+     HH.div
+     [ css "status-container" ]
+     [ statusBox paymentRD paymentElem
+     , statusBox mintingRD mintingElem
+     ]
+
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
-  HH.div_
-    [ HH.h1_
-        [ HH.text "Royal Mint" ]
-    , HH.input
-        [ HP.value state.tokenName
+  HH.div
+    [ css "container" ]
+    [ githubLink
+    , HH.img
+      [ css "coin"
+      , HP.src "/assets/images/coin.gif"
+      ]
+    , HH.div
+      [ css "container-inner" ]
+      [ HH.input
+        [ css "input-field"
+        , HP.value state.tokenName
         , HE.onValueInput SetTokenName
         ]
-    , HH.button
-        [ HE.onClick \_ -> MintToken state.tokenName ]
-        [ HH.text "Mint NFT for 5 ada" ]
-    , statusField state.pendingTx
+      , HH.button
+          [ css "button"
+          , HE.onClick \_ -> MintToken state.tokenName ]
+          [ HH.text "MINT" ]
+      ]
+    , statusContainer state.paymentRD state.mintingRD
     ]
 
 type WalletBalances
@@ -144,6 +233,7 @@ handleAction = case _ of
       eff <- liftEffect $ window >>= (alert "Token string is empty!")
       pure eff
     else do
+      H.modify_ (_ { paymentRD = NotAsked, mintingRD = NotAsked } )
       log ("Name.isEnabled: " <> show Nami.isEnabled)
       { cidM } <- H.get
 
@@ -167,7 +257,7 @@ handleAction = case _ of
         Just ({ cid, wa }) -> do
           log ("Minting token: " <> tokenName)
 
-          H.modify_ (_ { pendingTx = Loading } )
+          H.modify_ (_ { paymentRD = Loading } )
 
           partialCborTx <- H.liftAff $ fetchContractPartialTx cid
           makePaymentRes <-
@@ -177,27 +267,51 @@ handleAction = case _ of
 
           case makePaymentRes of
             Left e -> do
-              H.modify_ (_ { pendingTx = Error e } )
+              H.modify_ (_ { paymentRD = Failure e } )
               log $ show e
             Right txId -> do
               resE <- H.liftAff $ postPendingTx (show txId) tokenName (show wa)
               case resE of
                 Left e -> do
                   log ("ERROR: " <> show e)
-                  H.modify_ (_ { pendingTx = Error e } )
-                Right res -> do
-                  H.modify_ (_ { pendingTx = Success $ A.toString res } )
+                  H.modify_ (_ { paymentRD = Failure e } )
+                Right walletId -> do
+                  H.modify_ (_ { paymentRD = Success walletId } )
+                  H.modify_ (_ { mintingRD = Loading } )
+                  mintTxE <- H.liftAff $ getFindTx tokenName walletId
+                  case mintTxE of
+                    Left e -> H.modify_ (_ { mintingRD = Failure e } )
+                    Right tx -> H.modify_ (_ { mintingRD = Success tx } )
 
         Nothing -> do
           log ( "Something went wrong, either with wallet addresses or fetching contract instance" )
 
   SetTokenName tn -> do
-    H.modify_ (_ { tokenName = tn })
+    H.modify_ (_ { tokenName = toUpper tn })
+
+newtype FindTxData =
+  FindTxData
+  { tokenName :: String
+  , walletId :: String
+  }
+
+getFindTx :: String -> String -> Aff (Either Error String)
+getFindTx tn wid = do
+  -- TODO: Implement proper url encoding
+  resE <- AX.get
+            ResponseFormat.json
+            ("/find-tx" <> "?walletId=" <> wid <> "&tokenName=" <> tn)
+
+  case resE of
+    Left e -> (pure <<< Left <<< error <<< AX.printError) e
+    Right res -> case A.toString res.body of
+      Just body -> pure $ Right body
+      Nothing -> pure $ Left $ error "postPendingTx parsing error"
 
 newtype PendingTxData =
   PendingTxData { txHash :: String }
 
-postPendingTx :: String -> String -> String -> Aff (Either Error A.Json)
+postPendingTx :: String -> String -> String -> Aff (Either Error String)
 postPendingTx txHash tokenName walletAddress = do
   log ("postPendingTx: " <> txHash)
   let payload = FO.empty
@@ -211,7 +325,9 @@ postPendingTx txHash tokenName walletAddress = do
 
   case resE of
     Left e -> (pure <<< Left <<< error <<< AX.printError) e
-    Right res -> pure $ Right res.body
+    Right res -> case A.toString res.body of
+      Just body -> pure $ Right body
+      Nothing -> pure $ Left $ error "postPendingTx parsing error"
 
 fetchContractInstanceId
   :: forall m

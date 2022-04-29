@@ -1,0 +1,120 @@
+body {
+  color: #fff;
+  background-color: #168383;
+  display: flex;
+  justify-content: center;
+  font-family: "Roboto", serif;
+}
+
+.button {
+  font-family: "Roboto", serif;
+  font-weight: 1000;
+  width: fit-content;
+  color: white;
+  background-color: #187aff;
+  font-size: 20px;
+  border-radius: 15px;
+  padding: 15px;
+  border-color: #fff;
+  cursor: pointer;
+}
+
+.input-field {
+  font-size: 30px;
+  color: white;
+  background-color: #42b7af;
+  border-color: white;
+  width: 170px;
+  padding: 4px;
+  border-radius: 5px;
+  text-align: center;
+  margin: 12px;
+}
+
+.input-field:focus {
+  background-color: #0e5858;
+  border-color: white;
+  outline: 2px solid #0e5858;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20vh;
+}
+
+.container-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.status-container {
+  display: flex;
+  margin: 20px;
+  flex-direction: column;
+}
+
+.status-box {
+  display: flex;
+  font-size: 16px;
+  height: 70px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: row;
+  width: 400px;
+  height: inherit;
+  flex: 6;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.status-box > .loading-description {
+  display: flex;
+  align-items: center;
+  flex: 11;
+}
+
+.loading-description > p {
+  padding-left: 10px;
+}
+
+.coin {
+  width: 160px;
+}
+
+.coin-loader {
+  height: inherit;
+}
+
+.done-image {
+  height: calc(100% - 10px);
+  padding-right: 4px;
+}
+
+.mint-success-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.mint-success-container > p {
+  margin: 5px;
+  margin-left: 0px;
+}
+
+.mint-success-link {
+  padding-left: 3px;
+  color: #6bfff0;
+}
+
+.github-link {
+  position: absolute;
+  padding: 5px;
+  top: 0;
+  right: 0;
+  width: 50px;
+  height: 50px;
+}

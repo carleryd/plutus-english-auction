@@ -29,9 +29,11 @@
     "blake2b": "^2.1.4",
     "buffer": "^6.0.3",
     "crypto-random-string": "^4.0.0",
+    "css-loader": "^6.7.1",
     "dotenv": "^16.0.0",
     "json-bigint": "^1.0.0",
     "local-cors-proxy": "^1.1.0",
+    "mini-css-extract-plugin": "^2.6.0",
     "secrets": "^1.1.5",
     "web3-utils": "^1.6.1",
     "xhr2": "^0.2.1"

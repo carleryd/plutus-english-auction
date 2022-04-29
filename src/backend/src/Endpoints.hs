@@ -5,11 +5,16 @@
 module Endpoints
   ( getCurrentSlot,
     checkContractStatus,
-    fetchMintTx,
+    fetchMostRecentTx,
     homeEndpoint,
     baseEndpoints,
     balancesEndpoint,
     postPendingTx,
+    checkSuffix,
+    getLastTx,
+    Transaction (..),
+    Output (..),
+    Asset (..),
   )
 where
 
@@ -18,6 +23,9 @@ import Control.Monad.IO.Class
 import Data.Aeson hiding (json)
 import Data.Proxy (Proxy)
 import Data.Text (Text, pack)
+import Data.Time.Clock (addUTCTime, secondsToNominalDiffTime)
+import Data.Time.Clock.POSIX
+import Data.Time.Format.ISO8601 (iso8601Show)
 import GHC.Generics (Generic)
 import Ledger (Slot (..))
 import Ledger.Address (Address)
@@ -34,14 +42,29 @@ homeEndpoint = do
   setHeader "Content-Type" "text/html"
   file "./src/assets/index.html"
 
+checkSuffix :: String -> String -> Bool
+checkSuffix _ [] = False
+checkSuffix suffix (x : xs) = suffix == (x : xs) || checkSuffix suffix xs
+
+-- | Introduced this because "wasm" content type had to be set for Nami wallet to work.
+setHeaderContentType :: String -> ActionM ()
+setHeaderContentType xs
+  | checkSuffix ".js" xs = setHeader "Content-Type" "application/javascript"
+  | checkSuffix ".wasm" xs = setHeader "Content-Type" "application/wasm"
+  | checkSuffix ".css" xs = setHeader "Content-Type" "text/css"
+  | otherwise = setHeader "Content-Type" "text/html"
+
 baseEndpoints :: ScottyM ()
 baseEndpoints = do
   get "/" homeEndpoint
   get "/assets/index.js" $ file "./src/assets/index.js"
+  get "/assets/images/:image" $ do
+    v <- param "image"
+    setHeader "Content-Type" "image/gif"
+    file ("./src/assets/images/" <> v)
   get "/assets/frontend-dist/:file" $ do
-    -- TODO: This probably shouldn't be set on all files, but was required for the .wasm files we serve
-    setHeader "Content-Type" "application/wasm"
     v <- param "file"
+    setHeaderContentType v
     file ("./src/assets/frontend-dist/" <> v)
 
 balancesEndpoint :: Utils.WalletBalances -> ScottyM ()
@@ -70,7 +93,27 @@ postPendingTx createNFT = do
     txHashE <- liftIO (createNFT txh tn address)
     case txHashE of
       Left e -> json ("/pending-tx error: " <> show e)
-      Right a -> json ("/pending-tx success: " <> show a)
+      Right a -> json a
+
+data FindTx = FindTx
+  { ftWalletId :: String,
+    ftTokenName :: String
+  }
+  deriving (Generic, Show)
+
+instance ToJSON FindTx
+
+instance FromJSON FindTx
+
+getLastTx :: (WalletId -> String -> IO (Either String String)) -> ScottyM ()
+getLastTx getTxHash = do
+  get "/find-tx" $ do
+    wid <- param "walletId"
+    tn <- param "tokenName"
+    txHashE <- liftIO (getTxHash (unsafeReadWalletId wid) tn)
+    case txHashE of
+      Left e -> json ("/last-tx error: " <> show e)
+      Right a -> json a
 
 newtype Tip = Tip
   { tipSlot :: Slot
@@ -147,9 +190,29 @@ instance FromJSON InsertedAt
 
 instance ToJSON InsertedAt
 
+data Asset = Asset
+  { asset_name :: String,
+    quantity :: Integer,
+    policy_id :: String
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON Asset
+
+instance ToJSON Asset
+
+newtype Output = Output
+  { assets :: [Asset]
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON Output
+
+instance ToJSON Output
+
 data Transaction = Transaction
   { id :: String,
-    inserted_at :: InsertedAt
+    outputs :: [Output]
   }
   deriving (Show, Eq, Generic)
 
@@ -159,10 +222,16 @@ instance ToJSON Transaction
 
 -- | Fetch a few recent txs, should get at least one, the one we just sent when minting.
 -- | To get most recent one: sort descending and get the head
-fetchMintTx :: String -> WalletId -> IO (Either String String)
-fetchMintTx fromTimestamp wid = do
+fetchMostRecentTx :: WalletId -> IO (Either String [Transaction])
+fetchMostRecentTx wid = do
+  -- We want to filter requests based on how recent they are so that we don't have to fetch
+  -- all of the txs that the wallet has ever sent.
+  fiveMinAgo <-
+    iso8601Show . addUTCTime (secondsToNominalDiffTime (-300))
+      <$> getCurrentTime
+
   let p =
-        "start" =: pack fromTimestamp
+        "start" =: pack fiveMinAgo
           <> "order" =: ("descending" :: Text)
   v <-
     runReq defaultHttpConfig $
@@ -179,6 +248,6 @@ fetchMintTx fromTimestamp wid = do
           txE =
             if null newTxs
               then Left "Received no tx"
-              else Right $ (id . head) newTxs
+              else Right newTxs
       return txE
     else return $ Left ("ERROR: " ++ show c)

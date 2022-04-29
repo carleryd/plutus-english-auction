@@ -27,6 +27,7 @@ to generate this file without the comments in this block.
   , "foreign-object"
   , "halogen"
   , "http-methods"
+  , "lists"
   , "maybe"
   , "newtype"
   , "node-buffer"

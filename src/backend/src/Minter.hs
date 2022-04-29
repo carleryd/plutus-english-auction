@@ -5,15 +5,18 @@
 module Minter where
 
 import Blockfrost.Types.Shared hiding (Address, Slot, unSlot)
+import Contract.Utils
 import Contracts (mintNFT)
+import Data.Either.Extras (unsafeFromEither)
+import Data.List
 import Data.Text (pack)
-import Data.Time.Clock.POSIX
-import Data.Time.Format.ISO8601 (iso8601Show)
-import Endpoints (checkContractStatus, fetchMintTx)
+import Endpoints
 import GHC.Conc (threadDelay)
 import Ledger.Address (Address)
+import Ledger.Value (TokenName (TokenName))
 import Text.Printf (printf)
 import Utils (getBlockConfirmations)
+import Wallet.Emulator.Wallet (WalletId)
 import Prelude hiding (id)
 
 -- | Check if user has paid us the cost of minting their NFT.
@@ -25,28 +28,25 @@ mintOnConfirmation txHash tokenName sender = do
   mintAttempt txHash 30
   where
     mintAttempt :: String -> Integer -> IO (Either String String)
-    mintAttempt txh tries = do
+    mintAttempt txh attemptsLeft = do
       -- Amount of required block confirmations we require before we mint and send NFT
-      let goal = 1
+      let goal = 0
       confirmationsE <- getBlockConfirmations $ (TxHash . pack) txh
       case confirmationsE of
         Left _ -> do
-          if tries > 0
+          if attemptsLeft > 0
             then do
-              printf "Attempting to fetch block confirmations, retrying %s more times...\n" (show tries)
+              printf "Attempting to fetch block confirmations, retrying %s more times...\n" (show attemptsLeft)
               threadDelay 4_000_000
-              mintAttempt txh (tries - 1)
+              mintAttempt txh (attemptsLeft - 1)
             else do
-              printf "Error fetching block confirmations, stopping.\n" (show tries)
+              printf "Error fetching block confirmations, stopping.\n" (show attemptsLeft)
               return $ Left "Error fetching block confirmations"
         Right confirmations -> do
           if confirmations >= goal
             then do
               printf "Success! We've reached %s confirmations\n" (show goal)
 
-              -- We want to filter requests based on how recent they are so that we don't have to fetch
-              -- all of the txs that the wallet has ever sent.
-              timeNow <- iso8601Show <$> getCurrentTime
               printf "Calling `mintNFT` with tokenName: %s\n" (show tokenName)
               walletIdE <- mintNFT tokenName sender >>= checkContractStatus
 
@@ -54,32 +54,49 @@ mintOnConfirmation txHash tokenName sender = do
                 Left e -> do
                   return $ Left ("Error confirming minting status: " <> show e)
                 Right walletId -> do
-                  let fetchAttempt :: Integer -> IO (Either String String) -> IO (Either String String)
-                      fetchAttempt n io = do
-                        resE <- io
-                        case resE of
-                          Left e -> do
-                            if n > 0
-                              then do
-                                printf "fetchAttempt failed, %d left, error: %s\n" n (show e)
-                                threadDelay 5_000_000
-                                fetchAttempt (n - 1) io
-                              else do
-                                io
-                          Right a -> return $ Right a
-
-                  txHashE <- fetchAttempt 20 $ fetchMintTx timeNow walletId
-                  case txHashE of
-                    Left e -> do
-                      printf ("Error" <> e)
-                      return $ Left e
-                    Right a -> do
-                      printf ("Success, tx hash: " <> a)
-                      return $ Right a
+                  return $ Right $ show walletId
             else do
               printf
                 "Current confirmations %s out of required %s before minting NFT\n"
                 (show confirmations)
                 (show goal)
               threadDelay 2_000_000
-              mintAttempt txh tries
+              mintAttempt txh attemptsLeft
+
+containsAsset :: [Transaction] -> String -> Either String String
+containsAsset [] _ = Left "No assets here"
+containsAsset (tx : txs) an =
+  case find (\asset -> asset_name asset == an) (outputs tx >>= assets) of
+    Nothing -> containsAsset txs an
+    Just _ -> Right (id tx)
+
+getMintTxHash :: WalletId -> String -> IO (Either String String)
+getMintTxHash walletId tn = do
+  let fetchAttempt :: Integer -> IO (Either String [Transaction]) -> IO (Either String String)
+      fetchAttempt n fetchTxs = do
+        resE <- fetchTxs
+        case resE of
+          Left e -> do
+            if n > 0
+              then do
+                printf "fetchAttempt failed, %d left, error: %s\n" n (show e)
+                threadDelay 5_000_000
+                fetchAttempt (n - 1) fetchTxs
+              else do
+                return $ Left "Error getMintTxHash: ran out of attempts"
+          Right a -> do
+            txs <- unsafeFromEither <$> fetchTxs
+            -- TODO: Replace with input from client
+            case containsAsset txs (unsafeStringToHex tn) of
+              Left _ -> fetchAttempt (n - 1) fetchTxs
+              Right txHash -> do
+                printf "Success! Minting tx: %s\n" txHash
+                return $ Right txHash
+  txHashE <- fetchAttempt 20 $ fetchMostRecentTx walletId
+  case txHashE of
+    Left e -> do
+      printf "Error: %s" e
+      return $ Left e
+    Right a -> do
+      printf "Success, tx hash: %s\n" a
+      return $ Right a

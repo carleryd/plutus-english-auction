@@ -52,6 +52,6 @@ developmentOptions:
   pabResumeFrom:
     # "tag" : "PointAtGenesis" }
       { "tag" : "Point"
-      , "pointBlockId" : "a8756c78e3ee655fcbf07db340c5b451679a6712eac3a0bc7cebed2da99e01ae"
-      , "pointSlot" : {"getSlot" : 56266383}
+      , "pointBlockId" : "962e4fb341f551aaebca074070f269437ed9913754b5182df243e473a408d57f"
+      , "pointSlot" : {"getSlot" : 56781375}
       }
