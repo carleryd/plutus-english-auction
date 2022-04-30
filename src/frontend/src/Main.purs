@@ -153,7 +153,7 @@ statusContainer paymentRD mintingRD =
     paymentElem = case paymentRD of
       NotAsked -> HH.text ""
       Loading -> HH.text "Sending payment..."
-      Failure _ -> HH.text "Error with paying app to mint NFT"
+      Failure _ -> HH.text "Error paying app to mint NFT"
       Success _wid -> HH.text "Wallet has received payment!"
     mintingElem = case mintingRD of
       NotAsked -> HH.text ""
