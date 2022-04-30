@@ -16,6 +16,7 @@ module Cardano.Wallet.Nami
   , signData
   , signTx
   , submitTx
+  , namiWalletInstalled
   ) where
 
 import Prologue
@@ -38,6 +39,8 @@ foreign import enableImpl :: Effect (Promise Boolean)
 
 enable :: forall m. MonadAff m => m Boolean
 enable = liftAff $ toAffE enableImpl
+
+foreign import namiWalletInstalled :: Boolean
 
 foreign import isEnabled :: Boolean
 

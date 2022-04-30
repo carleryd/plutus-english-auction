@@ -153,7 +153,7 @@ statusContainer paymentRD mintingRD =
     paymentElem = case paymentRD of
       NotAsked -> HH.text ""
       Loading -> HH.text "Sending payment..."
-      Failure _ -> HH.text "Error with paying DApp to mint NFT"
+      Failure _ -> HH.text "Error with paying app to mint NFT"
       Success _wid -> HH.text "Wallet has received payment!"
     mintingElem = case mintingRD of
       NotAsked -> HH.text ""
@@ -210,6 +210,14 @@ type WalletBalances
 jsonToWb :: A.Json -> Either JsonDecodeError WalletBalances
 jsonToWb = decodeJson
 
+enableNami :: forall m. MonadAff m => m Unit
+enableNami =
+  if Nami.namiWalletInstalled then do
+    _ <- H.liftAff Nami.enable
+    pure unit
+  else do
+    liftEffect $ window >>= (alert "Please install Nami Wallet Chrome extension for this app to work.")
+
 handleAction ::
   forall output m
    . MonadAsk Env m
@@ -222,7 +230,7 @@ handleAction = case _ of
     let wid = "8c8c14997236e9372520d26666fb581e9b639ccb"
     cid <- H.liftAff $ fetchContractInstanceId wid
     -- Trigger popup for user to accept enabling of Nami integration
-    _ <- H.liftAff $ Nami.enable
+    _ <- H.liftAff enableNami
     log
       ( "Found cid: " <> show cid)
 
