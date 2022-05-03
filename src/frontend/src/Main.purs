@@ -348,7 +348,7 @@ fetchContractInstanceId wid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = (pabProxyUrl <> "/proxy/api/contract/instances/wallet/" <> wid)
+                { url = (pabProxyUrl <> "/api/contract/instances/wallet/" <> wid)
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }
@@ -383,7 +383,7 @@ fetchContractPartialTx cid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = (pabProxyUrl <> "/proxy/api/contract/instance/" <> cid <> "/status")
+                { url = (pabProxyUrl <> "/api/contract/instance/" <> cid <> "/status")
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }
