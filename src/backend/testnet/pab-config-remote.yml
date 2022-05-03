@@ -49,8 +49,7 @@ developmentOptions:
   pabRollbackHistory: null
   pabResumeFrom:
     # "tag" : "PointAtGenesis" }
-      { "tag" : "Point"
-      , "pointBlockId" : "a8756c78e3ee655fcbf07db340c5b451679a6712eac3a0bc7cebed2da99e01ae"
-      , "pointSlot" : {"getSlot" : 56266383}
-      }
-
+    { "tag" : "Point"
+    , "pointBlockId" : "55aa729ac3d4d1214510bf90fb1f62a92a16e71d6336208016d3844c56bd7465"
+    , "pointSlot" : {"getSlot" : 56941106}
+    }
