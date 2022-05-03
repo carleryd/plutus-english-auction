@@ -28,7 +28,6 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
-import Env (pabProxyUrl)
 import Foreign.Object as FO
 import Halogen as H
 import Halogen.Aff as HA
@@ -348,7 +347,7 @@ fetchContractInstanceId wid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = (pabProxyUrl <> "/api/contract/instances/wallet/" <> wid)
+                { url = ("/pab/api/contract/instances/wallet/" <> wid)
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }
@@ -383,7 +382,7 @@ fetchContractPartialTx cid = do
     H.liftAff
       $ AX.request
         ( AX.defaultRequest
-                { url = (pabProxyUrl <> "/api/contract/instance/" <> cid <> "/status")
+                { url = ("/pab/api/contract/instance/" <> cid <> "/status")
                 , method = Left GET
                 , responseFormat = ResponseFormat.json
                 }
