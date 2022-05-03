@@ -5,9 +5,11 @@ const Loader = require("nami-wallet/src/api/loader").default;
 
 // Using this to show user exclaimer that wallet needs to be installed
 exports.namiWalletInstalled =
-  window.cardano && window.cardano.enable ? true : false;
+  window.cardano && window.cardano.nami && window.cardano.nami.enable
+    ? true
+    : false;
 
-exports.enableImpl = () => window.cardano.enable();
+exports.enableImpl = () => window.cardano.nami.enable();
 
 // This is to prevent the rest of the file to throw runtime exceptions when evaluated
 if (window.cardano === undefined) {
