@@ -38,8 +38,8 @@ With all these pieces in place, our REST backend can now accept requests from th
 
 For testing purposes I've exposed different endpoints such as the [PAB](http://carleryd.tech:9080/swagger/swagger-ui/#/) and [plutus-chain-index](http://carleryd.tech:9083/swagger/swagger-ui/). If you're clever you could use them to bypass the 5 ada fee, and drain my wallet in the meantime!
 
-# Original and now future intent
-The original intent was to build an app which interacted with the [English Auction contract](https://github.com/carleryd/plutus-english-auction/blob/main/src/contracts/src/EnglishAuction.hs) which I've spent most of the time tweaking and testing, but because of above limitations with balancing transactions which consume contracts, I decided to limit the scope for now.
+# Future work
+The original intent was to build an app which interacted with the [English Auction contract](https://github.com/carleryd/plutus-english-auction/blob/main/src/contracts/src/EnglishAuction.hs). This is the contract code I've spent most of my time with, but because of above limitations with browser wallets, I decided to limit the scope for now.
 
 The English Auction contract was originally copied from a past iteration of the Plutus Pioneer Program and can be viewed [here](https://plutus-pioneer-program.readthedocs.io/en/latest/week1.html).
 
